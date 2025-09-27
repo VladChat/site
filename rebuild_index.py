@@ -3,7 +3,9 @@ from bs4 import BeautifulSoup
 
 ROOT = pathlib.Path(__file__).parent
 STATE = json.loads((ROOT / "data" / "state.json").read_text(encoding="utf-8"))
-SITE = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))["site"]
+CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+SITE = CONFIG.get("site", {})
+SITE_NAME = CONFIG.get("site_name") or SITE.get("name", "Blog")
 INDEX_TPL = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 TAG_TPL = (ROOT / "templates" / "tag.html").read_text(encoding="utf-8")
 
@@ -33,7 +35,7 @@ def build_index():
     home_path.write_text(str(soup), encoding="utf-8")
 
 def build_sitemap_and_rss():
-    base = SITE["base_url"].rstrip("/")
+    base = (SITE.get("base_url") or "").rstrip("/")
     posts = STATE.get("posts", [])[:500]
     # sitemap
     urls = ["<?xml version='1.0' encoding='UTF-8'?>",
@@ -46,7 +48,7 @@ def build_sitemap_and_rss():
     # rss
     rss = ["<?xml version='1.0' encoding='UTF-8'?>",
            "<rss version='2.0'><channel>",
-           f"<title>{SITE.get('name','Blog')}</title>",
+           f"<title>{SITE_NAME}</title>",
            f"<link>{base}</link>",
            "<description>Automated blog feed</description>"]
     for p in posts[:50]:
