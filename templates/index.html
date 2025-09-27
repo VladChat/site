@@ -1,7 +1,60 @@
-<!-- Home page template (rendered by rebuild_index.py) -->
-<div class="article-card">
-  <h2>Latest posts</h2>
-  <div id="list">
-    <!-- Rendered items -->
-  </div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ site_name }}</title>
+    <link rel="stylesheet" href="{{ baseurl }}/assets/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1><a href="{{ baseurl }}/">{{ site_name }}</a></h1>
+        <nav>
+          <ul>
+            <li><a href="{{ baseurl }}/">Home</a></li>
+            <li><a href="{{ baseurl }}/posts/">Archive</a></li>
+            <li><a href="{{ baseurl }}/tags.html">Tags</a></li>
+            <li><a href="{{ baseurl }}/search.html">Search</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="latest-posts">
+        <h2>Latest Posts</h2>
+        <ul class="post-list">
+          {% for post in posts %}
+          <li class="post-item">
+            <h3>
+              <a href="{{ baseurl }}/posts/{{ post.date }}/{{ post.slug }}.html">
+                {{ post.title }}
+              </a>
+            </h3>
+            {% if post.summary %}
+            <p class="post-summary">{{ post.summary }}</p>
+            {% endif %}
+            {% if post.date %}
+            <p class="post-meta">
+              <time datetime="{{ post.date }}">{{ post.date }}</time>
+            </p>
+            {% endif %}
+          </li>
+          {% else %}
+          <li class="post-item empty">No posts available yet.</li>
+          {% endfor %}
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>&copy; {{ site_name }}</p>
+        <a href="{{ baseurl }}/privacy.html">Privacy Policy</a>
+        <a href="{{ baseurl }}/terms.html">Terms of Use</a>
+      </div>
+    </footer>
+  </body>
+</html>
