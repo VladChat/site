@@ -1,8 +1,9 @@
 (async function(){
+  const BASE = (document.querySelector('meta[name="site-base"]')?.content || '').replace(/\/$/, '');
   const input = document.getElementById('q');
   const results = document.getElementById('results');
   if (!input || !results) return;
-  const data = await fetch('/feeds/search.json', {cache:'no-store'}).then(r=>r.json()).catch(()=>[]);
+  const data = await fetch(BASE + '/feeds/search.json', {cache:'no-store'}).then(r=>r.json()).catch(()=>[]);
   input.addEventListener('input', () => {
     const q = input.value.toLowerCase();
     results.innerHTML='';
@@ -11,7 +12,7 @@
     hits.forEach(p => {
       const el = document.createElement('div');
       el.className='article-card';
-      el.innerHTML = `<a href="${p.url}"><strong>${p.title}</strong></a><div class="meta">${p.date}</div><p>${p.description||''}</p>`;
+      el.innerHTML = `<a href="${BASE + p.url}"><strong>${p.title}</strong></a><div class="meta">${p.date}</div><p>${p.description||''}</p>`;
       results.appendChild(el);
     });
   });

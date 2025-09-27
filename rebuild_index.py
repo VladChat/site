@@ -7,6 +7,27 @@ SITE = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))["site"]
 INDEX_TPL = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 TAG_TPL = (ROOT / "templates" / "tag.html").read_text(encoding="utf-8")
 
+def _prefix_urls(soup, base):
+    for tag in soup.find_all(True):
+        for attr in ("href","src"):
+            if tag.has_attr(attr):
+                v = tag.get(attr,"")
+                if isinstance(v,str) and v.startswith("/"):
+                    tag[attr] = base.rstrip("/") + v
+    # ensure meta site-base exists/updated
+    head = soup.find("head")
+    if head:
+        mb = head.find("meta", attrs={"name":"site-base"})
+        if mb:
+            mb["content"] = base.rstrip("/")
+        else:
+            from bs4 import Tag
+            m = soup.new_tag("meta")
+            m.attrs["name"] = "site-base"
+            m.attrs["content"] = base.rstrip("/")
+            head.append(m)
+
+
 def write(path, txt):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(txt, encoding="utf-8")
@@ -24,7 +45,7 @@ def build_index():
     list_div.clear()
     for p in items:
         item = soup.new_tag("div", attrs={"class":"article-card"})
-        a = soup.new_tag("a", href=p["url"])
+        a = soup.new_tag("a", href=f"{base}{p['url']}")
         a.string = p["title"]
         meta = soup.new_tag("div", attrs={"class":"meta"}); meta.string = p["date"]
         desc = soup.new_tag("p"); desc.string = p.get("description","")
@@ -69,7 +90,7 @@ def build_tags():
         list_div = soup.find(id="list"); list_div.clear()
         for p in items:
             item = soup.new_tag("div", attrs={"class":"article-card"})
-            a = soup.new_tag("a", href=p["url"]); a.string = p["title"]
+            a = soup.new_tag("a", href=f"{base}{p['url']}"); a.string = p["title"]
             meta = soup.new_tag("div", attrs={"class":"meta"}); meta.string = p["date"]
             desc = soup.new_tag("p"); desc.string = p.get("description","")
             item.append(a); item.append(meta); item.append(desc)
@@ -80,4 +101,18 @@ if __name__ == "__main__":
     build_index()
     build_sitemap_and_rss()
     build_tags()
-    print("Rebuilt index, sitemap, rss, tags")
+    fix_root_shells()
+    print("Rebuilt index, sitemap, rss, tags, and fixed root shells")
+
+
+def fix_root_shells():
+    pages = ["index.html","privacy.html","terms.html","search.html","404.html"]
+    for name in pages:
+        path = ROOT / name
+        if not path.exists(): 
+            continue
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        _prefix_urls(soup, SITE["base_url"].rstrip("/"))
+        path.write_text(str(soup), encoding="utf-8")
+

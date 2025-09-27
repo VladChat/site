@@ -156,7 +156,7 @@ def render_post(title, html_body, date, description):
 
     # Fill layout
     final_html = Template(layout).render(
-        LANG=CONFIG['site'].get('language','en'),
+        LANG=CONFIG['site'].get('language','en'), BASEURL=CONFIG['site'].get('base_url','').rstrip('/'),
         TITLE=title, DESCRIPTION=description, HEAD_META=head_filled,
         SITE_NAME=CONFIG['site'].get('name','Vlad’s Blog'), BYLINE=CONFIG['site'].get('brand_byline',''),
         CONTENT=post_html

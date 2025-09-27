@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{TITLE}}</title>
   <meta name="description" content="{{DESCRIPTION}}">
-  <link rel="stylesheet" href="/assets/style.css">
+  <meta name="site-base" content="{{BASEURL}}">
+  <link rel="stylesheet" href="{{BASEURL}}/assets/style.css">
   {{HEAD_META}}
 </head>
 <body>
@@ -14,9 +15,9 @@
       <div class="brand container">
         <div><strong>{{SITE_NAME}}</strong></div>
         <nav>
-          <a href="/">Home</a>
+          <a href="{{BASEURL}}/">Home</a>
           <a href="/feeds/rss.xml">RSS</a>
-          <a href="/search.html">Search</a>
+          <a href="{{BASEURL}}/search.html">Search</a>
         </nav>
       </div>
     </header>
@@ -46,15 +47,15 @@
     <footer>
       <div class="container">
         <p>© <span id="year"></span> {{SITE_NAME}} — {{BYLINE}}</p>
-        <p><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p>
+        <p><a href="{{BASEURL}}/privacy.html">Privacy</a> · <a href="{{BASEURL}}/terms.html">Terms</a></p>
       </div>
     </footer>
   </div>
 
   <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
   <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
-  <script src="/assets/ad-loader.js" defer></script>
-  <script src="/assets/toc.js" defer></script>
-  <script src="/assets/reading-progress.js" defer></script>
+  <script src="{{BASEURL}}/assets/ad-loader.js" defer></script>
+  <script src="{{BASEURL}}/assets/toc.js" defer></script>
+  <script src="{{BASEURL}}/assets/reading-progress.js" defer></script>
 </body>
 </html>
