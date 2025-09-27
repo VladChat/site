@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import feedparser
 from slugify import slugify
 from bs4 import BeautifulSoup
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
 
 # OpenAI optional import (user must set OPENAI_API_KEY)
 try:
@@ -21,6 +21,21 @@ TEMPLATES = ROOT / "templates"
 SITE = CONFIG.get("site", {})
 MIN_WORDS = CONFIG.get("minWords", 1200)
 MAX_WORDS = CONFIG.get("maxWords", 1400)
+
+ENV = Environment(loader=FileSystemLoader([str(ROOT), str(ROOT / "templates")]))
+
+
+def base_context(**extra):
+    context = {
+        "baseurl": CONFIG.get("baseurl", ""),
+        "site": SITE,
+        "config": CONFIG,
+        "site_name": SITE.get("name", ""),
+        "SITE_NAME": SITE.get("name", ""),
+        "BYLINE": SITE.get("brand_byline", ""),
+    }
+    context.update(extra)
+    return context
 
 def read_state():
     if not STATE_PATH.exists():
@@ -130,37 +145,46 @@ This is demo content. Replace with OpenAI output.
             raise
 
 def render_post(title, html_body, date, description):
-    layout = (TEMPLATES / "layout.html").read_text(encoding="utf-8")
-    post_tpl = (TEMPLATES / "post.html").read_text(encoding="utf-8")
-    head_meta = (TEMPLATES / "partials" / "head-meta.html").read_text(encoding="utf-8")
-    related = (TEMPLATES / "partials" / "related.html").read_text(encoding="utf-8")
-    faq = (TEMPLATES / "partials" / "faq.html").read_text(encoding="utf-8")
+    related = ENV.get_template("partials/related.html").render(base_context())
+    faq = ENV.get_template("partials/faq.html").render(base_context())
 
     # Estimate reading time ~200 wpm
     words = len(re.sub(r"<[^>]+>", " ", html_body).split())
     minutes = max(1, int(words / 200))
     reading_time = f"~{minutes} min read"
 
-    # Fill post template
-    post_html = Template(post_tpl).render(
-        POST_TITLE=title, DATE=date.strftime("%B %d, %Y"), READING_TIME=reading_time,
-        POST_BODY=html_body, RELATED=related, FAQ=faq
+    post_context = base_context(
+        POST_TITLE=title,
+        DATE=date.strftime("%B %d, %Y"),
+        READING_TIME=reading_time,
+        POST_BODY=html_body,
+        RELATED=related,
+        FAQ=faq,
     )
+    post_html = ENV.get_template("post.html").render(post_context)
 
     canonical = f"{CONFIG['site']['base_url'].rstrip('/')}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
-    head_filled = Template(head_meta).render(
-        TITLE=title, DESCRIPTION=description, PUBLISHED_ISO=date.isoformat(), UPDATED_ISO=date.isoformat(),
-        BYLINE=CONFIG['site'].get('brand_byline',''), SITE_NAME=CONFIG['site'].get('name',''),
-        CANONICAL=canonical
+    head_context = base_context(
+        TITLE=title,
+        DESCRIPTION=description,
+        PUBLISHED_ISO=date.isoformat(),
+        UPDATED_ISO=date.isoformat(),
+        BYLINE=SITE.get('brand_byline',''),
+        SITE_NAME=SITE.get('name',''),
+        CANONICAL=canonical,
     )
+    head_filled = ENV.get_template("partials/head-meta.html").render(head_context)
 
-    # Fill layout
-    final_html = Template(layout).render(
-        LANG=CONFIG['site'].get('language','en'),
-        TITLE=title, DESCRIPTION=description, HEAD_META=head_filled,
-        SITE_NAME=CONFIG['site'].get('name','Vlad’s Blog'), BYLINE=CONFIG['site'].get('brand_byline',''),
-        CONTENT=post_html
+    layout_context = base_context(
+        LANG=SITE.get('language','en'),
+        TITLE=title,
+        DESCRIPTION=description,
+        HEAD_META=head_filled,
+        SITE_NAME=SITE.get('name','Vlad’s Blog'),
+        BYLINE=SITE.get('brand_byline',''),
+        CONTENT=post_html,
     )
+    final_html = ENV.get_template("layout.html").render(layout_context)
     return final_html
 
 def md_to_html(md_text):
@@ -173,6 +197,20 @@ def md_to_html(md_text):
     html = re.sub(r"\n\n", r"</p><p>", html)
     html = "<p>" + html + "</p>"
     return html
+
+
+def render_index_page():
+    template = ENV.get_template("index.html")
+    html = template.render(base_context())
+    (ROOT / "index.html").write_text(html, encoding="utf-8")
+
+
+def render_static_pages():
+    for page in ["privacy.html", "terms.html", "search.html", "404.html"]:
+        template = ENV.get_template(page)
+        html = template.render(base_context())
+        (ROOT / page).write_text(html, encoding="utf-8")
+
 
 def main(auto=False):
     state = read_state()
@@ -209,6 +247,10 @@ def main(auto=False):
     write_state(state)
 
     print("Wrote", out_path)
+
+    # Refresh shared pages with resolved template context
+    render_index_page()
+    render_static_pages()
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
