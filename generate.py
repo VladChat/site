@@ -14,11 +14,12 @@ except Exception:
 
 ROOT = pathlib.Path(__file__).parent
 CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+SITE = CONFIG.get("site", {})
+SITE_NAME = CONFIG.get("site_name") or SITE.get("name", "")
 STATE_PATH = ROOT / "data" / "state.json"
 POSTS_JSON = STATE_PATH
 POSTS_DIR = ROOT / "posts"
 TEMPLATES = ROOT / "templates"
-SITE = CONFIG.get("site", {})
 MIN_WORDS = CONFIG.get("minWords", 1200)
 MAX_WORDS = CONFIG.get("maxWords", 1400)
 
@@ -147,18 +148,22 @@ def render_post(title, html_body, date, description):
         POST_BODY=html_body, RELATED=related, FAQ=faq
     )
 
-    canonical = f"{CONFIG['site']['base_url'].rstrip('/')}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
+    base_url = (SITE.get("base_url") or "").rstrip("/")
+    canonical = f"{base_url}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
+    site_display_name = SITE_NAME or SITE.get("name") or "Vlad’s Blog"
+    byline = SITE.get("brand_byline", "")
+    language = SITE.get("language", "en")
     head_filled = Template(head_meta).render(
         TITLE=title, DESCRIPTION=description, PUBLISHED_ISO=date.isoformat(), UPDATED_ISO=date.isoformat(),
-        BYLINE=CONFIG['site'].get('brand_byline',''), SITE_NAME=CONFIG['site'].get('name',''),
+        BYLINE=byline, SITE_NAME=site_display_name,
         CANONICAL=canonical
     )
 
     # Fill layout
     final_html = Template(layout).render(
-        LANG=CONFIG['site'].get('language','en'),
+        LANG=language,
         TITLE=title, DESCRIPTION=description, HEAD_META=head_filled,
-        SITE_NAME=CONFIG['site'].get('name','Vlad’s Blog'), BYLINE=CONFIG['site'].get('brand_byline',''),
+        SITE_NAME=site_display_name, BYLINE=byline,
         CONTENT=post_html
     )
     return final_html
