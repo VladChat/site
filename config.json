@@ -11,29 +11,5 @@
   "horizonHours": 72,
   "cron": "0 12 * * *",
   "minWords": 1000,
-  "maxWords": 3000,
-  "keywords": [
-    "travel",
-    "luggage",
-    "packing tips",
-    "airlines",
-    "baggage allowance",
-    "battery-free luggage scale"
-  ],
-  "rss_feeds": [
-    "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
-    "https://www.travelandleisure.com/rss"
-  ],
-  "ads": {
-    "enabled": true,
-    "slots": [
-      "slot1",
-      "slot2",
-      "slot3"
-    ]
-  },
-  "analytics": {
-    "ga4_id": "",
-    "plausible_domain": ""
-  }
+  "maxWords": 3000
 }

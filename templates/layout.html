@@ -16,32 +16,15 @@
         <div><strong>{{SITE_NAME}}</strong></div>
         <nav>
           <a href="{{BASEURL}}/">Home</a>
-          <a href="/feeds/rss.xml">RSS</a>
           <a href="{{BASEURL}}/search.html">Search</a>
+          <a href="{{BASEURL}}/privacy.html">Privacy</a>
+          <a href="{{BASEURL}}/terms.html">Terms</a>
         </nav>
       </div>
     </header>
 
-    <div id="progress-root"></div>
-
-    <main>
-      <div>
-        {{CONTENT}}
-      </div>
-      <aside>
-        <div class="widget">
-          <h3>On this page</h3>
-          <div id="toc"></div>
-        </div>
-        <div class="widget">
-          <h3>Ad</h3>
-          <div class="ad-slot" data-ad="slot1"></div>
-        </div>
-        <div class="widget">
-          <h3>Recent</h3>
-          <div id="recent"></div>
-        </div>
-      </aside>
+    <main class="container">
+      {{CONTENT}}
     </main>
 
     <footer>

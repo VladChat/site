@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title># Introduction</title>
+  <meta name="description" content="Introduction
+This is demo content. Replace with OpenAI output.">
+  <meta name="site-base" content="https://vladchat.github.io/site">
+  <link rel="stylesheet" href="https://vladchat.github.io/site/assets/style.css">
+  <!-- OpenGraph / Twitter / JSON-LD -->
+<meta property="og:title" content="# Introduction">
+<meta property="og:description" content="Introduction
+This is demo content. Replace with OpenAI output.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="/assets/og-default.png">
+<meta property="og:url" content="https://vladchat.github.io/site/posts/2025/09/27/introduction.html">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "# Introduction",
+  "datePublished": "2025-09-27",
+  "dateModified": "2025-09-27",
+  "author": {"@type": "Organization", "name": "Written by uPatch editorial Team"},
+  "publisher": {"@type": "Organization", "name": "uPatch Blog"},
+  "mainEntityOfPage": {"@type":"WebPage","@id":"https://vladchat.github.io/site/posts/2025/09/27/introduction.html"}
+}
+</script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand container">
+        <div><strong>uPatch Blog</strong></div>
+        <nav>
+          <a href="https://vladchat.github.io/site/">Home</a>
+          <a href="https://vladchat.github.io/site/search.html">Search</a>
+          <a href="https://vladchat.github.io/site/privacy.html">Privacy</a>
+          <a href="https://vladchat.github.io/site/terms.html">Terms</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- Post template is injected into layout.html -->
+<article>
+  <h1># Introduction</h1>
+  <div class="meta">
+    <span>September 27, 2025</span> • <span class="reading-time">~1 min read</span>
+  </div>
+
+  <div class="ad-slot" data-ad="slot2"></div>
+
+  <p><h2>Introduction</h2>
+This is demo content. Replace with OpenAI output.</p><p><h2>Background</h2>
+...</p><p><h2>Analysis</h2>
+...</p><p><h2>Impact</h2>
+...</p><p><h2>Takeaways</h2>
+<ul><li>point</li><li>point</li></ul>
+<h2>Sources</h2>
+<ul><li>https://example.com</li></ul></p>
+
+  <div class="ad-slot" data-ad="slot3"></div>
+
+  <section class="article-card">
+  <h3>Related posts</h3>
+  <ul id="related-list"></ul>
+  <script>
+    (async () => {
+      try {
+        const posts = await fetch('/feeds/search.json', {cache:'no-store'}).then(r=>r.json());
+        const here = location.pathname;
+        const same = posts.filter(p => p.url !== here).slice(0,5);
+        const ul = document.getElementById('related-list');
+        same.forEach(p => {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="${p.url}">${p.title}</a>`;
+          ul.appendChild(li);
+        });
+      } catch(e){}
+    })();
+  </script>
+</section>
+
+  <section class="article-card">
+  <h3>FAQs</h3>
+  <details><summary>What’s the key takeaway?</summary><p>This article explains current trends and practical tips.</p></details>
+  <details><summary>Is the advice up to date?</summary><p>We combine fresh news signals with evergreen guidance.</p></details>
+</section>
+
+</article>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>© <span id="year"></span> uPatch Blog — Written by uPatch editorial Team</p>
+        <p><a href="https://vladchat.github.io/site/privacy.html">Privacy</a> · <a href="https://vladchat.github.io/site/terms.html">Terms</a></p>
+      </div>
+    </footer>
+  </div>
+
+  <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+  <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
+  <script src="https://vladchat.github.io/site/assets/ad-loader.js" defer></script>
+  <script src="https://vladchat.github.io/site/assets/toc.js" defer></script>
+  <script src="https://vladchat.github.io/site/assets/reading-progress.js" defer></script>
+</body>
+</html>

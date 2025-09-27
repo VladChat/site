@@ -27,7 +27,7 @@ jobs:
       - name: Build site
         run: |
           mkdir -p ./public
-          cp -r *.html posts ads assets ./public/ || true
+          cp -r *.html posts ads assets feeds data ./public/ || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
