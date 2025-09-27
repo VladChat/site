@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Vlad’s Blog — Home</title>
 <meta content="Latest automated articles." name="description"/>
-<link href="/assets/style.css" rel="stylesheet"/>
+<link href="{{ baseurl }}/assets/style.css" rel="stylesheet"/>
 </head>
 <body>
 <div class="container">
@@ -14,16 +14,16 @@
 <div class="brand container">
 <div><strong>Vlad’s Blog</strong></div>
 <nav>
-<a href="/">Home</a>
-<a href="/feeds/rss.xml">RSS</a>
-<a href="/search.html">Search</a>
+<a href="{{ baseurl }}/">Home</a>
+<a href="{{ baseurl }}/feeds/rss.xml">RSS</a>
+<a href="{{ baseurl }}/search.html">Search</a>
 </nav>
 </div>
 </header>
 <main>
 <div>
 <!-- Rendered list by rebuild_index.py -->
-<div class="article-card"><h2>Latest posts</h2><div id="list"><div class="article-card"><a href="/posts/2025/09/27/1-introduction.html">1. Introduction</a><div class="meta">2025-09-27</div><p>1. Introduction</p></div></div></div>
+<div class="article-card"><h2>Latest posts</h2><div id="list"><div class="article-card"><a href="{{ baseurl }}/posts/2025/09/27/1-introduction.html">1. Introduction</a><div class="meta">2025-09-27</div><p>1. Introduction</p></div></div></div>
 </div>
 <aside>
 <div class="widget">
@@ -39,12 +39,12 @@
 <footer>
 <div class="container">
 <p>© <span id="year"></span> Vlad’s Blog — Written by Vlad’s Team</p>
-<p><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p>
+<p><a href="{{ baseurl }}/privacy.html">Privacy</a> · <a href="{{ baseurl }}/terms.html">Terms</a></p>
 </div>
 </footer>
 </div>
 <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
-<script defer="" src="/assets/ad-loader.js"></script>
-<script defer="" src="/assets/search.js"></script>
+<script defer="" src="{{ baseurl }}/assets/ad-loader.js"></script>
+<script defer="" src="{{ baseurl }}/assets/search.js"></script>
 </body>
 </html>

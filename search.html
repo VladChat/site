@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Search — Vlad’s Blog</title>
-  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="{{ baseurl }}/assets/style.css">
 </head>
 <body>
   <div class="container">
@@ -12,9 +12,9 @@
       <div class="brand container">
         <div><strong>Vlad’s Blog</strong></div>
         <nav>
-          <a href="/">Home</a>
-          <a href="/feeds/rss.xml">RSS</a>
-          <a href="/search.html">Search</a>
+          <a href="{{ baseurl }}/">Home</a>
+          <a href="{{ baseurl }}/feeds/rss.xml">RSS</a>
+          <a href="{{ baseurl }}/search.html">Search</a>
         </nav>
       </div>
     </header>
@@ -32,6 +32,6 @@
     </footer>
   </div>
   <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
-  <script src="/assets/search.js" defer></script>
+  <script src="{{ baseurl }}/assets/search.js" defer></script>
 </body>
 </html>
