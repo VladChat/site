@@ -3,35 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Search — UPATCH Blog</title>
-  <link rel="stylesheet" href="https://vladchat.github.io/site/assets/style.css">
+  <title>Search — {{ site_name }}</title>
+  <link rel="stylesheet" href="{{ baseurl }}/assets/style.css">
 </head>
 <body>
   <div class="container">
     <header>
       <div class="brand container">
-        <div><strong>UPATCH Blog</strong></div>
+        <div><strong>{{ site_name }}</strong></div>
         <nav>
-          <a href="https://vladchat.github.io/site/">Home</a>
-          <a href="https://vladchat.github.io/site/feeds/rss.xml">RSS</a>
-          <a href="https://vladchat.github.io/site/search.html">Search</a>
+          <a href="{{ baseurl }}/">Home</a>
+          <a href="{{ baseurl }}/feeds/rss.xml">RSS</a>
+          <a href="{{ baseurl }}/search.html">Search</a>
         </nav>
       </div>
     </header>
 
     <main>
       <div class="article-card">
-        <h1>Search UPATCH Blog</h1>
+        <h1>Search {{ site_name }}</h1>
         <input id="q" placeholder="Type to search..." autofocus>
         <div id="results"></div>
       </div>
     </main>
 
     <footer class="container">
-      <p>© <span id="year"></span> UPATCH Blog</p>
+      <p>© <span id="year"></span> {{ site_name }}</p>
     </footer>
   </div>
   <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
-  <script src="https://vladchat.github.io/site/assets/search.js" defer></script>
+  <script src="{{ baseurl }}/assets/search.js" defer></script>
 </body>
 </html>

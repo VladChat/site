@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import feedparser
 from slugify import slugify
 from bs4 import BeautifulSoup
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
 # OpenAI optional import (user must set OPENAI_API_KEY)
 try:
@@ -20,8 +20,17 @@ STATE_PATH = ROOT / "data" / "state.json"
 POSTS_JSON = STATE_PATH
 POSTS_DIR = ROOT / "posts"
 TEMPLATES = ROOT / "templates"
+STATIC_TEMPLATES = TEMPLATES / "static"
 MIN_WORDS = CONFIG.get("minWords", 1200)
 MAX_WORDS = CONFIG.get("maxWords", 1400)
+BASE_URL = (SITE.get("base_url") or "").rstrip("/")
+SITE_DISPLAY_NAME = SITE_NAME or SITE.get("name") or "Vlad’s Blog"
+BRAND_BYLINE = SITE.get("brand_byline", "") or SITE_DISPLAY_NAME
+
+JINJA_ENV = Environment(
+    loader=FileSystemLoader([str(STATIC_TEMPLATES), str(TEMPLATES)]),
+    autoescape=select_autoescape(["html", "xml"]),
+)
 
 def read_state():
     if not STATE_PATH.exists():
@@ -148,14 +157,11 @@ def render_post(title, html_body, date, description):
         POST_BODY=html_body, RELATED=related, FAQ=faq
     )
 
-    base_url = (SITE.get("base_url") or "").rstrip("/")
-    canonical = f"{base_url}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
-    site_display_name = SITE_NAME or SITE.get("name") or "Vlad’s Blog"
-    byline = SITE.get("brand_byline", "")
+    canonical = f"{BASE_URL}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
     language = SITE.get("language", "en")
     head_filled = Template(head_meta).render(
         TITLE=title, DESCRIPTION=description, PUBLISHED_ISO=date.isoformat(), UPDATED_ISO=date.isoformat(),
-        BYLINE=byline, SITE_NAME=site_display_name,
+        BYLINE=BRAND_BYLINE, SITE_NAME=SITE_DISPLAY_NAME,
         CANONICAL=canonical
     )
 
@@ -163,8 +169,9 @@ def render_post(title, html_body, date, description):
     final_html = Template(layout).render(
         LANG=language,
         TITLE=title, DESCRIPTION=description, HEAD_META=head_filled,
-        SITE_NAME=site_display_name, BYLINE=byline,
-        CONTENT=post_html
+        SITE_NAME=SITE_DISPLAY_NAME, BYLINE=BRAND_BYLINE,
+        CONTENT=post_html,
+        baseurl=BASE_URL
     )
     return final_html
 
@@ -178,6 +185,24 @@ def md_to_html(md_text):
     html = re.sub(r"\n\n", r"</p><p>", html)
     html = "<p>" + html + "</p>"
     return html
+
+def render_static_pages():
+    context = {
+        "baseurl": BASE_URL,
+        "site_name": SITE_DISPLAY_NAME,
+        "byline": BRAND_BYLINE,
+    }
+    static_pages = [
+        "index.html",
+        "privacy.html",
+        "terms.html",
+        "search.html",
+        "404.html",
+    ]
+    for name in static_pages:
+        template = JINJA_ENV.get_template(name)
+        rendered = template.render(**context)
+        (ROOT / name).write_text(rendered, encoding="utf-8")
 
 def main(auto=False):
     state = read_state()
@@ -214,6 +239,7 @@ def main(auto=False):
     write_state(state)
 
     print("Wrote", out_path)
+    render_static_pages()
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
