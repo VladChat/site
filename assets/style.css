@@ -1,0 +1,74 @@
+/* Responsive base styles */
+:root{
+  --bg:#f9fafb; --fg:#1f2937; --muted:#6b7280; --brand:#0ea5e9; --accent:#f59e0b; --card:#ffffff; --border:#e5e7eb;
+  --maxw: 1100px;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; padding:0 16px; background:var(--bg); color:var(--fg);
+  font: 16px/1.7 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+}
+.container{max-width:var(--maxw); margin:0 auto}
+
+header, footer{
+  background:#111827; color:#fff; padding:14px 0; margin:0 0 16px 0;
+}
+header .brand{display:flex; align-items:center; justify-content:space-between}
+header nav a{color:#93c5fd; text-decoration:none; margin-right:14px}
+header nav a:hover{text-decoration:underline}
+
+main{display:grid; grid-template-columns:3fr 1fr; gap:24px}
+@media (max-width: 900px){ main{grid-template-columns:1fr} }
+
+.article-card, article{
+  background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.03);
+}
+
+h1,h2,h3{
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  color:#111827;
+}
+h1{font-size:clamp(1.8rem, 3.5vw, 2.6rem); line-height:1.2; margin:0 0 12px}
+h2{font-size:clamp(1.3rem, 2.2vw, 1.8rem); margin:24px 0 8px}
+h3{font-size:clamp(1.1rem, 1.8vw, 1.3rem); margin:18px 0 6px}
+p{margin:12px 0; color:#374151}
+ul,ol{padding-left:20px}
+
+img, iframe{max-width:100%; height:auto}
+blockquote{
+  margin:16px 0; padding:12px 16px; background:#eef2ff; border-left:4px solid #6366f1; border-radius:6px;
+}
+
+.tip-box{
+  border-left:4px solid var(--brand); background:#ecfeff; padding:12px 14px; border-radius:8px; margin:16px 0;
+}
+.warning-box{
+  border-left:4px solid #ef4444; background:#fee2e2; padding:12px 14px; border-radius:8px; margin:16px 0;
+}
+
+.meta{color:var(--muted); font-size:.95rem}
+.reading-time{color:var(--muted)}
+.ad-slot{margin:18px 0; padding:10px; background:#f8fafc; border:1px dashed var(--border); border-radius:8px}
+
+aside .widget{
+  background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin:0 0 16px 0;
+}
+
+footer{margin-top:24px; font-size:.95rem}
+footer a{color:#93c5fd}
+
+.back-to-top{
+  position:fixed; right:16px; bottom:16px; background:var(--brand); color:#fff; border:none; border-radius:999px; padding:10px 14px;
+  cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.back-to-top:hover{opacity:.9}
+
+.progress{
+  position:fixed; top:0; left:0; height:4px; background:linear-gradient(90deg, var(--brand), var(--accent));
+  width:0; z-index:9999;
+}

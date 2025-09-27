@@ -1,0 +1,39 @@
+{
+  "site": {
+    "name": "Vlad\u2019s Blog",
+    "base_url": "https://vladchat.github.io/site/",
+    "brand_byline": "Written by Vlad\u2019s Team",
+    "language": "en"
+  },
+  "model": "gpt-5-mini",
+  "fallback_model": "gpt-5",
+  "postsPerRun": 1,
+  "horizonHours": 72,
+  "cron": "0 12 * * *",
+  "minWords": 1200,
+  "maxWords": 1400,
+  "keywords": [
+    "travel",
+    "luggage",
+    "packing tips",
+    "airlines",
+    "baggage allowance",
+    "battery-free luggage scale"
+  ],
+  "rss_feeds": [
+    "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+    "https://www.travelandleisure.com/rss"
+  ],
+  "ads": {
+    "enabled": true,
+    "slots": [
+      "slot1",
+      "slot2",
+      "slot3"
+    ]
+  },
+  "analytics": {
+    "ga4_id": "",
+    "plausible_domain": ""
+  }
+}

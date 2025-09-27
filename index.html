@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vlad’s Blog — Home</title>
+  <meta name="description" content="Latest automated articles.">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand container">
+        <div><strong>Vlad’s Blog</strong></div>
+        <nav>
+          <a href="/">Home</a>
+          <a href="/feeds/rss.xml">RSS</a>
+          <a href="/search.html">Search</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div>
+        <!-- Rendered list by rebuild_index.py -->
+        <div class="article-card"><h2>Latest posts</h2><div id="list"></div></div>
+      </div>
+      <aside>
+        <div class="widget">
+          <h3>Ad</h3>
+          <div class="ad-slot" data-ad="slot1"></div>
+        </div>
+        <div class="widget">
+          <h3>Search</h3>
+          <input id="q" placeholder="Search..."><div id="results"></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>© <span id="year"></span> Vlad’s Blog — Written by Vlad’s Team</p>
+        <p><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
+  <script src="/assets/ad-loader.js" defer></script>
+  <script src="/assets/search.js" defer></script>
+</body>
+</html>

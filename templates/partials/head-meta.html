@@ -1,0 +1,19 @@
+<!-- OpenGraph / Twitter / JSON-LD -->
+<meta property="og:title" content="{{TITLE}}">
+<meta property="og:description" content="{{DESCRIPTION}}">
+<meta property="og:type" content="article">
+<meta property="og:image" content="/assets/og-default.png">
+<meta property="og:url" content="{{CANONICAL}}">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{TITLE}}",
+  "datePublished": "{{PUBLISHED_ISO}}",
+  "dateModified": "{{UPDATED_ISO}}",
+  "author": {"@type": "Organization", "name": "{{BYLINE}}"},
+  "publisher": {"@type": "Organization", "name": "{{SITE_NAME}}"},
+  "mainEntityOfPage": {"@type":"WebPage","@id":"{{CANONICAL}}"}
+}
+</script>

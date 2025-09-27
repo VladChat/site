@@ -1,0 +1,19 @@
+<section class="article-card">
+  <h3>Related posts</h3>
+  <ul id="related-list"></ul>
+  <script>
+    (async () => {
+      try {
+        const posts = await fetch('/feeds/search.json', {cache:'no-store'}).then(r=>r.json());
+        const here = location.pathname;
+        const same = posts.filter(p => p.url !== here).slice(0,5);
+        const ul = document.getElementById('related-list');
+        same.forEach(p => {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="${p.url}">${p.title}</a>`;
+          ul.appendChild(li);
+        });
+      } catch(e){}
+    })();
+  </script>
+</section>
