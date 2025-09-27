@@ -1,4 +1,5 @@
 {
+  "baseurl": "/site",
   "site": {
     "name": "UPATCH Blog",
     "base_url": "https://vladchat.github.io/site/",
