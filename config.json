@@ -1,8 +1,8 @@
 {
   "site": {
-    "name": "Vlad\u2019s Blog",
+    "name": "uPatch Blog",
     "base_url": "https://vladchat.github.io/site/",
-    "brand_byline": "Written by Vlad\u2019s Team",
+    "brand_byline": "Written by uPatch editorial Team",
     "language": "en"
   },
   "model": "gpt-5-mini",
@@ -10,8 +10,8 @@
   "postsPerRun": 1,
   "horizonHours": 72,
   "cron": "0 12 * * *",
-  "minWords": 1200,
-  "maxWords": 1400,
+  "minWords": 1000,
+  "maxWords": 3000,
   "keywords": [
     "travel",
     "luggage",

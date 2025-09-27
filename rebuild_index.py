@@ -7,21 +7,21 @@ SITE = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))["site"]
 INDEX_TPL = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 TAG_TPL = (ROOT / "templates" / "tag.html").read_text(encoding="utf-8")
 
+
 def _prefix_urls(soup, base):
     for tag in soup.find_all(True):
-        for attr in ("href","src"):
+        for attr in ("href", "src"):
             if tag.has_attr(attr):
-                v = tag.get(attr,"")
-                if isinstance(v,str) and v.startswith("/"):
+                v = tag.get(attr, "")
+                if isinstance(v, str) and v.startswith("/"):
                     tag[attr] = base.rstrip("/") + v
     # ensure meta site-base exists/updated
     head = soup.find("head")
     if head:
-        mb = head.find("meta", attrs={"name":"site-base"})
+        mb = head.find("meta", attrs={"name": "site-base"})
         if mb:
             mb["content"] = base.rstrip("/")
         else:
-            from bs4 import Tag
             m = soup.new_tag("meta")
             m.attrs["name"] = "site-base"
             m.attrs["content"] = base.rstrip("/")
@@ -32,26 +32,26 @@ def write(path, txt):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(txt, encoding="utf-8")
 
+
 def build_index():
-    # Render simple list into root index.html (already has shell)
     items = STATE.get("posts", [])[:50]
-    # Also write feeds/search.json
     (ROOT / "feeds" / "search.json").write_text(json.dumps(items, indent=2), encoding="utf-8")
 
-    # Patch into existing index.html
     home_path = ROOT / "index.html"
     soup = BeautifulSoup(home_path.read_text(encoding="utf-8"), "html.parser")
     list_div = soup.find(id="list")
     list_div.clear()
+    base = SITE["base_url"].rstrip("/")
     for p in items:
-        item = soup.new_tag("div", attrs={"class":"article-card"})
+        item = soup.new_tag("div", attrs={"class": "article-card"})
         a = soup.new_tag("a", href=f"{base}{p['url']}")
         a.string = p["title"]
-        meta = soup.new_tag("div", attrs={"class":"meta"}); meta.string = p["date"]
-        desc = soup.new_tag("p"); desc.string = p.get("description","")
+        meta = soup.new_tag("div", attrs={"class": "meta"}); meta.string = p["date"]
+        desc = soup.new_tag("p"); desc.string = p.get("description", "")
         item.append(a); item.append(meta); item.append(desc)
         list_div.append(item)
     home_path.write_text(str(soup), encoding="utf-8")
+
 
 def build_sitemap_and_rss():
     base = SITE["base_url"].rstrip("/")
@@ -75,27 +75,40 @@ def build_sitemap_and_rss():
     rss.append("</channel></rss>")
     write(ROOT / "feeds" / "rss.xml", "\n".join(rss))
 
+
 def build_tags():
-    # From posts metadata tags
     from collections import defaultdict
     by_tag = defaultdict(list)
     for p in STATE.get("posts", []):
         for t in p.get("tags", []):
             by_tag[t].append(p)
+    base = SITE["base_url"].rstrip("/")
     for tag, items in by_tag.items():
-        # Simple page
         html = TAG_TPL.replace("{{TAG}}", tag)
         path = ROOT / "tags" / tag / "index.html"
         soup = BeautifulSoup(html, "html.parser")
         list_div = soup.find(id="list"); list_div.clear()
         for p in items:
-            item = soup.new_tag("div", attrs={"class":"article-card"})
+            item = soup.new_tag("div", attrs={"class": "article-card"})
             a = soup.new_tag("a", href=f"{base}{p['url']}"); a.string = p["title"]
-            meta = soup.new_tag("div", attrs={"class":"meta"}); meta.string = p["date"]
-            desc = soup.new_tag("p"); desc.string = p.get("description","")
+            meta = soup.new_tag("div", attrs={"class": "meta"}); meta.string = p["date"]
+            desc = soup.new_tag("p"); desc.string = p.get("description", "")
             item.append(a); item.append(meta); item.append(desc)
             list_div.append(item)
         write(path, str(soup))
+
+
+def fix_root_shells():
+    pages = ["index.html", "privacy.html", "terms.html", "search.html", "404.html"]
+    base = SITE["base_url"].rstrip("/")
+    for name in pages:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        _prefix_urls(soup, base)
+        path.write_text(str(soup), encoding="utf-8")
+
 
 if __name__ == "__main__":
     build_index()
@@ -103,16 +116,3 @@ if __name__ == "__main__":
     build_tags()
     fix_root_shells()
     print("Rebuilt index, sitemap, rss, tags, and fixed root shells")
-
-
-def fix_root_shells():
-    pages = ["index.html","privacy.html","terms.html","search.html","404.html"]
-    for name in pages:
-        path = ROOT / name
-        if not path.exists(): 
-            continue
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
-        _prefix_urls(soup, SITE["base_url"].rstrip("/"))
-        path.write_text(str(soup), encoding="utf-8")
-
