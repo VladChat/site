@@ -133,33 +133,39 @@ def render_post(title, html_body, date, description):
     layout = (TEMPLATES / "layout.html").read_text(encoding="utf-8")
     post_tpl = (TEMPLATES / "post.html").read_text(encoding="utf-8")
     head_meta = (TEMPLATES / "partials" / "head-meta.html").read_text(encoding="utf-8")
-    related = (TEMPLATES / "partials" / "related.html").read_text(encoding="utf-8")
-    faq = (TEMPLATES / "partials" / "faq.html").read_text(encoding="utf-8")
 
-    # Estimate reading time ~200 wpm
-    words = len(re.sub(r"<[^>]+>", " ", html_body).split())
-    minutes = max(1, int(words / 200))
-    reading_time = f"~{minutes} min read"
+    baseurl = (CONFIG.get("baseurl") or "").rstrip("/")
 
-    # Fill post template
+    # Fill post template with the new context keys
     post_html = Template(post_tpl).render(
-        POST_TITLE=title, DATE=date.strftime("%B %d, %Y"), READING_TIME=reading_time,
-        POST_BODY=html_body, RELATED=related, FAQ=faq
+        title=title,
+        date=date.strftime("%B %d, %Y"),
+        content=html_body,
+        baseurl=baseurl,
     )
 
     canonical = f"{CONFIG['site']['base_url'].rstrip('/')}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
     head_filled = Template(head_meta).render(
-        TITLE=title, DESCRIPTION=description, PUBLISHED_ISO=date.isoformat(), UPDATED_ISO=date.isoformat(),
-        BYLINE=CONFIG['site'].get('brand_byline',''), SITE_NAME=CONFIG['site'].get('name',''),
-        CANONICAL=canonical
+        TITLE=title,
+        DESCRIPTION=description,
+        PUBLISHED_ISO=date.isoformat(),
+        UPDATED_ISO=date.isoformat(),
+        BYLINE=CONFIG['site'].get('brand_byline', ''),
+        SITE_NAME=CONFIG['site'].get('name', ''),
+        CANONICAL=canonical,
+        baseurl=baseurl,
     )
 
     # Fill layout
     final_html = Template(layout).render(
-        LANG=CONFIG['site'].get('language','en'),
-        TITLE=title, DESCRIPTION=description, HEAD_META=head_filled,
-        SITE_NAME=CONFIG['site'].get('name','Vlad’s Blog'), BYLINE=CONFIG['site'].get('brand_byline',''),
-        CONTENT=post_html
+        LANG=CONFIG['site'].get('language', 'en'),
+        TITLE=title,
+        DESCRIPTION=description,
+        HEAD_META=head_filled,
+        SITE_NAME=CONFIG['site'].get('name', 'Vlad’s Blog'),
+        BYLINE=CONFIG['site'].get('brand_byline', ''),
+        CONTENT=post_html,
+        baseurl=baseurl,
     )
     return final_html
 
