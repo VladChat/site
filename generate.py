@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import feedparser
 from slugify import slugify
 from bs4 import BeautifulSoup
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
 
 # OpenAI optional import (user must set OPENAI_API_KEY)
 try:
@@ -20,8 +20,29 @@ STATE_PATH = ROOT / "data" / "state.json"
 POSTS_JSON = STATE_PATH
 POSTS_DIR = ROOT / "posts"
 TEMPLATES = ROOT / "templates"
+ENV = Environment(loader=FileSystemLoader([str(TEMPLATES), str(ROOT)]))
 MIN_WORDS = CONFIG.get("minWords", 1200)
 MAX_WORDS = CONFIG.get("maxWords", 1400)
+
+
+def build_shared_context():
+    baseurl_raw = CONFIG.get("baseurl", "") or ""
+    if baseurl_raw == "/":
+        baseurl = ""
+    else:
+        baseurl = baseurl_raw.rstrip("/")
+    site_display_name = SITE_NAME or SITE.get("name") or "Vlad’s Blog"
+    return {
+        "config": CONFIG,
+        "site": SITE,
+        "SITE": SITE,
+        "site_name": site_display_name,
+        "SITE_NAME": site_display_name,
+        "baseurl": baseurl,
+        "BASEURL": baseurl,
+        "BYLINE": SITE.get("brand_byline", ""),
+        "LANG": SITE.get("language", "en"),
+    }
 
 def read_state():
     if not STATE_PATH.exists():
@@ -131,41 +152,48 @@ This is demo content. Replace with OpenAI output.
             raise
 
 def render_post(title, html_body, date, description):
-    layout = (TEMPLATES / "layout.html").read_text(encoding="utf-8")
-    post_tpl = (TEMPLATES / "post.html").read_text(encoding="utf-8")
-    head_meta = (TEMPLATES / "partials" / "head-meta.html").read_text(encoding="utf-8")
-    related = (TEMPLATES / "partials" / "related.html").read_text(encoding="utf-8")
-    faq = (TEMPLATES / "partials" / "faq.html").read_text(encoding="utf-8")
+    shared = build_shared_context()
 
     # Estimate reading time ~200 wpm
     words = len(re.sub(r"<[^>]+>", " ", html_body).split())
     minutes = max(1, int(words / 200))
     reading_time = f"~{minutes} min read"
 
-    # Fill post template
-    post_html = Template(post_tpl).render(
-        POST_TITLE=title, DATE=date.strftime("%B %d, %Y"), READING_TIME=reading_time,
-        POST_BODY=html_body, RELATED=related, FAQ=faq
-    )
+    related_html = ENV.get_template("partials/related.html").render(**shared)
+    faq_html = ENV.get_template("partials/faq.html").render(**shared)
+
+    post_context = {
+        **shared,
+        "POST_TITLE": title,
+        "DATE": date.strftime("%B %d, %Y"),
+        "READING_TIME": reading_time,
+        "POST_BODY": html_body,
+        "RELATED": related_html,
+        "FAQ": faq_html,
+    }
+    post_html = ENV.get_template("post.html").render(**post_context)
 
     base_url = (SITE.get("base_url") or "").rstrip("/")
     canonical = f"{base_url}/posts/{date:%Y/%m/%d}/{slugify(title)}.html"
-    site_display_name = SITE_NAME or SITE.get("name") or "Vlad’s Blog"
-    byline = SITE.get("brand_byline", "")
-    language = SITE.get("language", "en")
-    head_filled = Template(head_meta).render(
-        TITLE=title, DESCRIPTION=description, PUBLISHED_ISO=date.isoformat(), UPDATED_ISO=date.isoformat(),
-        BYLINE=byline, SITE_NAME=site_display_name,
-        CANONICAL=canonical
-    )
 
-    # Fill layout
-    final_html = Template(layout).render(
-        LANG=language,
-        TITLE=title, DESCRIPTION=description, HEAD_META=head_filled,
-        SITE_NAME=site_display_name, BYLINE=byline,
-        CONTENT=post_html
-    )
+    head_context = {
+        **shared,
+        "TITLE": title,
+        "DESCRIPTION": description,
+        "PUBLISHED_ISO": date.isoformat(),
+        "UPDATED_ISO": date.isoformat(),
+        "CANONICAL": canonical,
+    }
+    head_filled = ENV.get_template("partials/head-meta.html").render(**head_context)
+
+    layout_context = {
+        **shared,
+        "TITLE": title,
+        "DESCRIPTION": description,
+        "HEAD_META": head_filled,
+        "CONTENT": post_html,
+    }
+    final_html = ENV.get_template("layout.html").render(**layout_context)
     return final_html
 
 def md_to_html(md_text):
