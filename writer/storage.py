@@ -23,7 +23,13 @@ def save_post(title, html, configs):
     state_path = configs["state_path"]
     state = configs["state"]
     state.setdefault("posts", [])
-    state["posts"].insert(0, {"title": title, "url": url, "date": today.strftime("%Y-%m-%d"), "description": desc, "tags": ["auto"]})
+    state["posts"].insert(0, {
+        "title": title,
+        "url": url,
+        "date": today.strftime("%Y-%m-%d"),
+        "description": desc,
+        "tags": ["auto"]
+    })
 
     def url_to_path(u: str): return u.lstrip("/")
     state["posts"] = [p for p in state["posts"] if os.path.exists(url_to_path(p.get("url", "")))]
@@ -34,7 +40,7 @@ def save_post(title, html, configs):
     print(f"✅ Saved post to {filepath} and updated state.json")
 
 def fetch_news_from_rss(configs):
-    feeds = configs["base_config"].get("rssFeeds", [])
+    feeds = configs.get("feeds", [])
     for url in feeds:
         try:
             feed = feedparser.parse(url)
