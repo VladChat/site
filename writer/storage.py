@@ -3,22 +3,6 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from .render import slugify
 
-def _url_to_repo_path(u: str, base_prefix: str = "/site") -> str:
-    """
-    Convert a site URL to a repo-relative file path.
-    Handles cases like "/posts/..." or "/site/posts/...".
-    """
-    u = (u or "").strip()
-    if not u:
-        return ""
-    # force leading slash for local urls
-    if not u.startswith(("http://", "https://", "/")):
-        u = "/" + u
-    # strip base prefix if present
-    if base_prefix and u.startswith(base_prefix + "/"):
-        u = u[len(base_prefix):]
-    # finally strip the leading slash
-    return u.lstrip("/")
 
 def save_post(title, html, configs):
     """
@@ -48,7 +32,7 @@ def save_post(title, html, configs):
 
     # Update state.json
     state_path = configs["state_path"]
-    state = configs["state"] or {}
+    state = configs.get("state") or {}
     state.setdefault("posts", [])
 
     # Prepend newest
@@ -60,24 +44,14 @@ def save_post(title, html, configs):
         "tags": ["auto"]
     })
 
-    # Keep only records that have a file in repo (defensive cleanup)
-    # Accept both "/posts/..." and "/site/posts/..."
-    cleaned = []
-    seen_keys = set()
-    for p in state["posts"]:
-        path1 = _url_to_repo_path(p.get("url", ""), "/site")
-        path2 = _url_to_repo_path(p.get("url", ""), "")  # also try without base
-        exists = (os.path.exists(path1) or os.path.exists(path2))
-        key = (p.get("title",""), p.get("date",""), p.get("url",""))
-        if exists and key not in seen_keys:
-            cleaned.append(p)
-            seen_keys.add(key)
-    state["posts"] = cleaned
+    # ❌ Больше нет агрессивной фильтрации старых постов.
+    # Все старые записи остаются в state.json, даже если файл временно отсутствует.
 
     with open(state_path, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
 
     print(f"✅ Saved post to {filepath} and updated state.json")
+
 
 def fetch_news_from_rss(configs):
     """
