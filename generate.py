@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+from datetime import datetime
 from typing import Optional, Tuple
 
 from writer.config import load_configs
@@ -11,7 +12,7 @@ from writer.prompts import build_prompt
 from writer.llm import call_openai
 from writer.faq import extract_faq
 from writer.render import render_post_html
-from writer.storage import save_post, fetch_news_from_rss
+from writer.storage import save_post, fetch_news_from_rss, build_post_slug
 
 
 def _load_keywords_list(configs) -> Optional[list]:
@@ -77,12 +78,20 @@ def _persist_keyword_index(configs, next_idx: int) -> None:
         print(f"⚠️ Failed to persist keyword_index to state.json: {e}")
 
 
-def generate_post(keyword: str, summaries: str, configs) -> str:
+def generate_post(keyword: str, summaries: str, configs, *, slug: str, published_at: datetime) -> str:
     """Build prompts, call LLM, extract FAQ, render HTML."""
     sys_prompt, usr_prompt = build_prompt(keyword, summaries, configs)
     article_md = call_openai(usr_prompt, sys_prompt)
     faq_html, faq_jsonld = extract_faq(article_md)
-    html = render_post_html(keyword, article_md, faq_html, faq_jsonld, configs)
+    html = render_post_html(
+        keyword,
+        article_md,
+        faq_html,
+        faq_jsonld,
+        configs,
+        slug=slug,
+        published_at=published_at,
+    )
     return html
 
 
@@ -112,8 +121,16 @@ def main():
     summaries = args.summaries or rss_summary or "Headline — Source"
 
     # Generate → Save → Persist keyword index (after save_post, to avoid overwrite)
-    html = generate_post(chosen_keyword, summaries, configs)
-    save_post(chosen_keyword, html, configs)
+    slug, published_at = build_post_slug(chosen_keyword)
+
+    html = generate_post(
+        chosen_keyword,
+        summaries,
+        configs,
+        slug=slug,
+        published_at=published_at,
+    )
+    save_post(chosen_keyword, html, configs, slug=slug, published_at=published_at)
     if chosen_idx is not None:
         _persist_keyword_index(configs, chosen_idx)
 
