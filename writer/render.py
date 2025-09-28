@@ -42,7 +42,10 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs):
     words = len(re.findall(r"\w+", body_md))
     reading_time = f"{max(1, words // 200)} min read"
     site = configs["base_config"]["site"]
-    base = site["base_url"].rstrip("/")
+
+    # берём домен и base_url из конфига
+    site_url = site.get("url", "").rstrip("/")
+    base_url = site.get("base_url", "").rstrip("/")
 
     body_html = md_to_html(body_md)
     content = (post_tpl
@@ -53,7 +56,10 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs):
         .replace("{{RELATED}}", "")
         .replace("{{FAQ}}", faq_html)
     )
-    canonical_url = f"{base}/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{slugify(title)}.html"
+
+    # формируем полный каноникал
+    canonical_url = f"{site_url}{base_url}/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{slugify(title)}.html"
+
     description = plain_text(body_md)[:160]
     head_filled = (head_meta
         .replace("{{TITLE}}", title)
