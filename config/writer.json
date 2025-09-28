@@ -1,0 +1,19 @@
+{
+  "model": "gpt-5-mini",
+  "fallbackModel": "gpt-5",
+  "temperature": 0.4,
+  "minWords": 1200,
+  "maxWords": 1400,
+  "sections": [
+    "Introduction",
+    "Background",
+    "Analysis",
+    "Impact",
+    "Takeaways",
+    "Sources"
+  ],
+  "prompt": {
+    "system": "You are an award-winning travel journalist and SEO strategist.",
+    "user": "Primary keyword: {keyword}\nRecent news signals (headline \u2014 source):\n{summaries}\n\nWrite a long-form article (between {MIN_WORDS} and {MAX_WORDS} words) structured with these sections exactly:\n{SECTIONS_ENUM}\n\nRules:\n- Mention the keyword in the introduction, at least one H2, and in the conclusion.\n- Use clear subheads and short paragraphs.\n- Add bullet points where useful.\n- Provide 3\u20136 external sources at the end under 'Sources' (plain links, no annotations).\n"
+  }
+}

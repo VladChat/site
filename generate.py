@@ -23,12 +23,19 @@ FEEDS = load_json('config/feeds.json')['rss_feeds']
 ADS = load_json('config/ads.json')
 ANALYTICS = load_json('config/analytics.json')
 
+try:
+    WRITER = load_json('config/writer.json')
+except Exception:
+    WRITER = {}
+
 STATE_PATH = ROOT / 'data' / 'state.json'
 POSTS_DIR = ROOT / 'posts'
 TEMPLATES = ROOT / 'templates'
 SITE = CONFIG.get('site', {})
-MIN_WORDS = CONFIG.get('minWords', 1200)
-MAX_WORDS = CONFIG.get('maxWords', 1400)
+MIN_WORDS = WRITER.get('minWords', CONFIG.get('minWords', 1200))
+MAX_WORDS = WRITER.get('maxWords', CONFIG.get('maxWords', 1400))
+
+SECTIONS = WRITER.get('sections', ['Introduction','Background','Analysis','Impact','Takeaways','Sources'])
 
 def read_state():
     if not STATE_PATH.exists():
@@ -69,67 +76,86 @@ def fetch_news_items(hours=72, limit=20):
     random.shuffle(uniq)
     return uniq[:limit]
 
+
 def build_prompt(keyword, news_batch):
-    summaries = '\n'.join([f"- {n['title']} — {n['source']}" for n in news_batch])
-    return f"""You are an award-winning news/SEO writer.
+    summaries = '\n'.join([f"- {n.get('title','')} — {n.get('source','')}" for n in news_batch])
+    # Writer config templating
+    prompt_cfg = WRITER.get('prompt', {})
+    tpl_user = prompt_cfg.get('user')
+    sections_enum = "\n".join([f"{i+1}. {s}" for i, s in enumerate(SECTIONS)])
+    sections_md = "\n".join([f"## {s}" for s in SECTIONS])
+    ctx = {
+        'keyword': keyword,
+        'summaries': summaries,
+        'MIN_WORDS': MIN_WORDS,
+        'MAX_WORDS': MAX_WORDS,
+        'SECTIONS': SECTIONS,
+        'SECTIONS_ENUM': sections_enum,
+        'SECTIONS_MD': sections_md
+    }
+    if tpl_user:
+        try:
+            return prompt_cfg.get('system', ''), tpl_user.format(**ctx)
+        except Exception as ex:
+            print('writer.json user template format error:', ex)
+    # Fallback to built-in prompt
+    user_prompt = f"""You are an award-winning news/SEO writer.
 Primary keyword: {keyword}
 News signals (headlines & sources):
 {summaries}
 
-Write a long-form article (between {MIN_WORDS} and {MAX_WORDS} words) in six sections, with headings exactly:
-1. Introduction
-2. Background
-3. Analysis
-4. Impact
-5. Takeaways
-6. Sources
+Write a long-form article (between {MIN_WORDS} and {MAX_WORDS} words) with section headings exactly:
+{sections_enum}
 
 Rules:
 - Mention the keyword in the intro, in at least one H2, and in the conclusion.
 - Use clear subheads and short paragraphs.
 - Include bullet points where useful.
-- Provide 3–6 external sources in 'Sources'.
-- Keep tone helpful and credible.
+- Provide 3–6 external sources in 'Sources' as plain links.
 """
+    system_prompt = prompt_cfg.get('system', 'You write structured, factual, SEO-friendly articles.')
+    return system_prompt, user_prompt
 
-def call_openai(prompt):
+
+
+def call_openai(user_prompt, system_prompt=None):
+    # Demo fallback
     if _client is None:
-        body = """# Introduction
-This is demo content. Replace with OpenAI output.
-
-# Background
-...
-
-# Analysis
-...
-
-# Impact
-...
-
-# Takeaways
-- point
-- point
-
-# Sources
-- https://example.com
-"""
+        body = "# " + SECTIONS[0] + "\nThis is demo content. Replace with OpenAI output.\n\n" +                "\n\n".join([f"# {s}\n..." for s in SECTIONS[1:-1]]) +                "\n\n# " + SECTIONS[-1] + "\n- https://example.com"
         return body
-    model = CONFIG.get('model', 'gpt-5-mini')
+    model = WRITER.get('model', CONFIG.get('model', 'gpt-5-mini'))
+    temperature = WRITER.get('temperature', 0.4)
+    messages = []
+    messages.append({'role':'system','content': system_prompt or 'You write structured, factual, SEO-friendly articles.'})
+    messages.append({'role':'user','content': user_prompt})
     try:
         resp = _client.chat.completions.create(
             model=model,
-            messages=[{'role':'system','content':'You write structured, factual, SEO-friendly articles.'},
-                      {'role':'user','content': prompt}],
-            temperature=0.4
+            messages=messages,
+            temperature=temperature
         )
         return resp.choices[0].message.content
     except Exception as ex:
+        # Try fallback model if specified
+        fb = WRITER.get('fallbackModel', CONFIG.get('fallback_model'))
+        if fb:
+            try:
+                resp = _client.chat.completions.create(
+                    model=fb,
+                    messages=messages,
+                    temperature=temperature
+                )
+                return resp.choices[0].message.content
+            except Exception as ex2:
+                print('OpenAI fallback error:', ex2)
+        # As last resort try Responses API
         try:
-            resp = _client.responses.create(model=model, input=prompt)
+            resp = _client.responses.create(model=model, input=user_prompt)
             return resp.output_text
-        except Exception as ex2:
-            print('OpenAI error:', ex2)
+        except Exception as ex3:
+            print('OpenAI error:', ex3)
             raise
+
 
 def render_post(title, html_body, date, description):
     layout = (TEMPLATES / 'layout.html').read_text(encoding='utf-8')
@@ -180,8 +206,8 @@ def main(auto=False):
     if not news:
         news = [{'title':'Travel demand is rising','source':'example.com','link':'#','summary':''}]
     kw = random.choice(KEYWORDS)
-    prompt = build_prompt(kw, news[:6])
-    body = call_openai(prompt)
+    system_prompt, user_prompt = build_prompt(kw, news[:6])
+    body = call_openai(user_prompt, system_prompt)
 
     lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
     title = lines[0][:100] if lines else f'Trends in {kw}'
