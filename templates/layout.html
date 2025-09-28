@@ -1,50 +1,32 @@
 <!DOCTYPE html>
-<html lang="{{LANG}}">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{TITLE}}</title>
-  <meta name="description" content="{{DESCRIPTION}}">
-  <meta name="site-base" content="{{BASEURL}}">
-  <link rel="stylesheet" href="{{BASEURL}}/assets/style.css">
-  {{HEAD_META}}
+  <title>{{ site.name }}</title>
+  <link rel="stylesheet" href="/site/assets/style.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="brand container">
-        <div><strong>{{SITE_NAME}}</strong></div>
-        <nav>
-          <a href="{{BASEURL}}/">Home</a>
-          <a href="{{BASEURL}}/search.html">Search</a>
-          <a href="{{BASEURL}}/privacy.html">Privacy</a>
-          <a href="{{BASEURL}}/terms.html">Terms</a>
-        </nav>
-      </div>
-    </header>
+  <header>
+    <h1><a href="/site/">{{ site.name }}</a></h1>
+    <nav>
+      <a href="/site/">Home</a>
+      <a href="/site/rss.xml">RSS</a>
+      <a href="/site/search.html">Search</a>
+      <a href="/site/privacy.html">Privacy</a>
+      <a href="/site/terms.html">Terms</a>
+    </nav>
+  </header>
 
-    <main class="container">
-      <!-- Slot1 on top of all pages -->
-      <div class="ad-slot" data-ad="slot1"></div>
+  <main>
+    {{ content }}
+  </main>
 
-      {{CONTENT}}
+  <footer>
+    <p>© 2025 {{ site.name }} — Written by Vlad’s Team</p>
+  </footer>
 
-      <!-- Slot3 at bottom of all pages -->
-      <div class="ad-slot" data-ad="slot3"></div>
-    </main>
-
-    <footer>
-      <div class="container">
-        <p>© <span id="year"></span> {{SITE_NAME}} — {{BYLINE}}</p>
-        <p><a href="{{BASEURL}}/privacy.html">Privacy</a> · <a href="{{BASEURL}}/terms.html">Terms</a></p>
-      </div>
-    </footer>
-  </div>
-
-  <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-  <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
-  <script src="{{BASEURL}}/assets/ad-loader.js" defer></script>
-  <script src="{{BASEURL}}/assets/toc.js" defer></script>
-  <script src="{{BASEURL}}/assets/reading-progress.js" defer></script>
+  <!-- Подключаем загрузчик рекламы -->
+  <script src="/site/assets/ad-loader.js"></script>
 </body>
 </html>
