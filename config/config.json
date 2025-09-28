@@ -1,7 +1,8 @@
 {
   "site": {
     "name": "uPatch Blog",
-    "base_url": "https://vladchat.github.io",
+    "base_url": "/site",
+    "url": "https://vladchat.github.io",
     "brand_byline": "Written by uPatch editorial Team",
     "language": "en"
   }
