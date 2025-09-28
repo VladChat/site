@@ -16,6 +16,13 @@ if os.path.exists(writer_config_path):
 else:
     writer_config = {}
 
+state_path = "data/state.json"
+if os.path.exists(state_path):
+    with open(state_path, "r", encoding="utf-8") as f:
+        STATE = json.load(f)
+else:
+    STATE = {"posts": []}
+
 # === Parameters ===
 MODEL = writer_config.get("model", "gpt-5-mini")
 FALLBACK_MODEL = writer_config.get("fallbackModel", "gpt-5")
@@ -132,7 +139,6 @@ def save_post(keyword, html):
     folder = f"blog-src/posts/{today.year}/{today.month:02d}/{today.day:02d}"
     os.makedirs(folder, exist_ok=True)
 
-    # slug из keyword
     slug = re.sub(r'[^a-z0-9\-]+', '-', keyword.lower()).strip('-')
     if not slug:
         slug = "post"
@@ -140,7 +146,22 @@ def save_post(keyword, html):
     filepath = os.path.join(folder, f"{slug}.html")
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"✅ Saved post to {filepath}")
+
+    # --- Update state.json ---
+    url = f"/posts/{today.year}/{today.month:02d}/{today.day:02d}/{slug}.html"
+    new_entry = {
+        "title": keyword,
+        "url": url,
+        "date": today.strftime("%Y-%m-%d"),
+        "description": f"{keyword} article",
+        "tags": ["auto"]
+    }
+    # добавляем в начало списка
+    STATE["posts"].insert(0, new_entry)
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(STATE, f, ensure_ascii=False, indent=2)
+
+    print(f"✅ Saved post to {filepath} and updated state.json")
 
 # === Fetch news for auto mode ===
 def fetch_news_from_rss():
@@ -164,7 +185,6 @@ def generate_post(keyword, summaries):
 
     faq_html, faq_jsonld = extract_faq(text)
 
-    # Construct HTML page with FAQ JSON-LD in <head>
     post_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
