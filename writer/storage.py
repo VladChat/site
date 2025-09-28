@@ -4,24 +4,42 @@ from bs4 import BeautifulSoup
 from .render import slugify
 
 
-def save_post(title, html, configs):
+def build_post_slug(title, when=None):
+    """Return a timestamped slug for a post and the datetime used.
+
+    The datetime is returned so other components can reuse the same
+    timestamp when building paths or canonical URLs.
     """
-    Save a post to posts/YYYY/MM/DD/<slug>-HHMMSS.html
+    when = when or datetime.today()
+    base_slug = slugify(title) or "post"
+    return f"{base_slug}-{when.strftime('%H%M%S')}", when
+
+
+def save_post(title, html, configs, *, slug, published_at=None):
+    """
+    Save a post to posts/YYYY/MM/DD/<slug>.html
     and update data/state.json (prepend newest).
     """
-    today = datetime.today()
-    folder = os.path.join("posts", f"{today.year:04d}", f"{today.month:02d}", f"{today.day:02d}")
+    published_at = published_at or datetime.today()
+    folder = os.path.join(
+        "posts",
+        f"{published_at.year:04d}",
+        f"{published_at.month:02d}",
+        f"{published_at.day:02d}",
+    )
     os.makedirs(folder, exist_ok=True)
+    if not slug:
+        slug, _ = build_post_slug(title, when=published_at)
 
-    # Ensure unique slug to avoid overwriting previous posts with same title
-    base_slug = slugify(title) or "post"
-    unique_slug = f"{base_slug}-{today.strftime('%H%M%S')}"
-
-    filepath = os.path.join(folder, f"{unique_slug}.html")
+    filepath = os.path.join(folder, f"{slug}.html")
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html)
 
-    url = f"/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{unique_slug}.html"
+    url = (
+        f"/posts/{published_at.year:04d}/"
+        f"{published_at.month:02d}/"
+        f"{published_at.day:02d}/{slug}.html"
+    )
 
     # Short description for index
     try:
@@ -39,7 +57,7 @@ def save_post(title, html, configs):
     state["posts"].insert(0, {
         "title": title,
         "url": url,
-        "date": today.strftime("%Y-%m-%d"),
+        "date": published_at.strftime("%Y-%m-%d"),
         "description": desc,
         "tags": ["auto"]
     })

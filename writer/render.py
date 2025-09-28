@@ -29,7 +29,7 @@ def plain_text(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
-def render_post_html(title, body_md, faq_html, faq_jsonld, configs):
+def render_post_html(title, body_md, faq_html, faq_jsonld, configs, *, slug, published_at=None):
     ROOT = configs["root"]
     with open(f"{ROOT}/templates/layout.html", encoding="utf-8") as f:
         layout = f.read()
@@ -38,7 +38,7 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs):
     with open(f"{ROOT}/templates/partials/head-meta.html", encoding="utf-8") as f:
         head_meta = f.read()
 
-    today = datetime.today()
+    published_at = published_at or datetime.today()
     words = len(re.findall(r"\w+", body_md))
     reading_time = f"{max(1, words // 200)} min read"
     site = configs["base_config"]["site"]
@@ -50,7 +50,7 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs):
     body_html = md_to_html(body_md)
     content = (post_tpl
         .replace("{{POST_TITLE}}", title)
-        .replace("{{DATE}}", today.strftime("%Y-%m-%d"))
+        .replace("{{DATE}}", published_at.strftime("%Y-%m-%d"))
         .replace("{{READING_TIME}}", reading_time)
         .replace("{{POST_BODY}}", body_html)
         .replace("{{RELATED}}", "")
@@ -58,15 +58,18 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs):
     )
 
     # формируем полный каноникал
-    canonical_url = f"{site_url}{base_url}/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{slugify(title)}.html"
+    canonical_url = (
+        f"{site_url}{base_url}/posts/"
+        f"{published_at.year:04d}/{published_at.month:02d}/{published_at.day:02d}/{slug}.html"
+    )
 
     description = plain_text(body_md)[:160]
     head_filled = (head_meta
         .replace("{{TITLE}}", title)
         .replace("{{DESCRIPTION}}", description)
         .replace("{{CANONICAL}}", canonical_url)
-        .replace("{{PUBLISHED_ISO}}", today.strftime("%Y-%m-%d"))
-        .replace("{{UPDATED_ISO}}", today.strftime("%Y-%m-%d"))
+        .replace("{{PUBLISHED_ISO}}", published_at.strftime("%Y-%m-%d"))
+        .replace("{{UPDATED_ISO}}", published_at.strftime("%Y-%m-%d"))
         .replace("{{BYLINE}}", site.get("brand_byline",""))
         .replace("{{SITE_NAME}}", site.get("name",""))
     ) + "\n" + faq_jsonld
