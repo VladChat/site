@@ -4,6 +4,7 @@
     "base_url": "/site",
     "url": "https://vladchat.github.io",
     "brand_byline": "Written by uPatch editorial Team",
-    "language": "en"
+    "language": "en",
+    "posts_per_page": 20
   }
 }

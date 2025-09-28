@@ -1,4 +1,4 @@
-import os, json
+import os, json, math
 from pathlib import Path
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -17,13 +17,14 @@ def write_text(path: Path, txt: str):
 # --- Load site + state ---
 SITE_ALL = read_json("config/config.json")
 SITE = SITE_ALL.get("site", {})
-BASE = SITE.get("base_url", "").rstrip("/")            # напр. "/site" или ""
-SITE_URL = SITE.get("url", "").rstrip("/")             # напр. "https://vladchat.github.io"
+BASE = SITE.get("base_url", "").rstrip("/")
+SITE_URL = SITE.get("url", "").rstrip("/")
+POSTS_PER_PAGE = int(SITE.get("posts_per_page", 20))  # регулируется в config.json
 
 STATE_PATH = ROOT / "data/state.json"
 STATE = read_json("data/state.json")
 
-# --- Normalize state: ensure urls always start with /posts/... ---
+# --- Normalize state ---
 def normalize_state():
     changed = False
     posts = STATE.get("posts", [])
@@ -34,11 +35,8 @@ def normalize_state():
         url_orig = p.get("url", "") or ""
         url = url_orig
 
-        # ensure leading slash
         if url and not url.startswith(("http://", "https://", "/")):
             url = "/" + url
-
-        # strip accidental double prefix
         if url.startswith("/site/site/"):
             url = url[len("/site"):]
         if BASE and url.startswith(BASE + "/"):
@@ -55,7 +53,6 @@ def normalize_state():
             norm_posts.append(p)
             seen.add(key)
         else:
-            # просто пропускаем дубликаты, но не трогаем остальные посты
             changed = True
 
     if changed:
@@ -63,64 +60,85 @@ def normalize_state():
         STATE_PATH.write_text(json.dumps(STATE, ensure_ascii=False, indent=2), encoding="utf-8")
         print("🧹 Normalized data/state.json")
 
-# --- Build main index.html ---
-def build_main():
-    posts = STATE.get("posts", [])[:50]
-    home_path = ROOT / "index.html"
-    soup = BeautifulSoup(home_path.read_text(encoding="utf-8"), "html.parser")
+# --- Build paginated index pages ---
+def build_main_and_pages():
+    posts = STATE.get("posts", [])
+    total = len(posts)
+    pages = math.ceil(total / POSTS_PER_PAGE)
 
-    list_div = soup.find(id="list")
-    if list_div:
-        list_div.clear()
+    template_path = ROOT / "index.html"
+    soup_template = BeautifulSoup(template_path.read_text(encoding="utf-8"), "html.parser")
 
-    for p in posts:
-        item = soup.new_tag("div", attrs={"class": "article-card"})
+    for page in range(1, pages + 1):
+        start = (page - 1) * POSTS_PER_PAGE
+        end = start + POSTS_PER_PAGE
+        page_posts = posts[start:end]
 
-        href = f"{BASE}{p['url']}" if isinstance(p.get("url"), str) else "#"
-        a = soup.new_tag("a", href=href)
-        a.string = p.get("title", "Untitled")
-
-        meta = soup.new_tag("div", attrs={"class": "meta"})
-        meta.string = p.get("date", "")
-
-        desc = soup.new_tag("p")
-        desc.string = p.get("description", "")
-
-        item.append(a)
-        item.append(meta)
-        item.append(desc)
+        soup = BeautifulSoup(str(soup_template), "html.parser")
+        list_div = soup.find(id="list")
         if list_div:
+            list_div.clear()
+
+        for p in page_posts:
+            item = soup.new_tag("div", attrs={"class": "article-card"})
+            href = f"{BASE}{p['url']}" if isinstance(p.get("url"), str) else "#"
+            a = soup.new_tag("a", href=href)
+            a.string = p.get("title", "Untitled")
+            meta = soup.new_tag("div", attrs={"class": "meta"})
+            meta.string = p.get("date", "")
+            desc = soup.new_tag("p")
+            desc.string = p.get("description", "")
+            item.append(a); item.append(meta); item.append(desc)
             list_div.append(item)
 
-    home_path.write_text(str(soup), encoding="utf-8")
-    # also write feeds/search.json
+        # добавляем навигацию
+        nav = soup.new_tag("div", attrs={"class": "pagination"})
+        if page > 1:
+            prev_link = soup.new_tag("a", href=f"{BASE}/page/{page-1}/index.html")
+            prev_link.string = "← Previous"
+            nav.append(prev_link)
+        if page < pages:
+            next_link = soup.new_tag("a", href=f"{BASE}/page/{page+1}/index.html")
+            next_link.string = "Next →"
+            nav.append(next_link)
+        if list_div:
+            list_div.append(nav)
+
+        # сохраняем
+        if page == 1:
+            out_path = ROOT / "index.html"
+        else:
+            out_path = ROOT / "page" / str(page) / "index.html"
+        write_text(out_path, str(soup))
+
+    # client search index
     feeds_dir = ROOT / "feeds"
     feeds_dir.mkdir(parents=True, exist_ok=True)
-    write_text(feeds_dir / "search.json", json.dumps(STATE.get("posts", [])[:200], ensure_ascii=False, indent=2))
-    print("✅ Rebuilt main index.html + feeds/search.json")
+    write_text(feeds_dir / "search.json", json.dumps(posts[:200], ensure_ascii=False, indent=2))
+    print(f"✅ Rebuilt {pages} index pages with pagination")
 
 # --- Build sitemap.xml & rss.xml ---
 def build_sitemap_and_rss():
     posts = STATE.get("posts", [])[:500]
+    base = BASE
+    site_url = SITE_URL
 
-    # sitemap.xml
     sitemap = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for p in posts:
-        loc = f"{SITE_URL}{BASE}{p['url']}" if SITE_URL else f"{BASE}{p['url']}"
+        loc = f"{site_url}{base}{p['url']}" if site_url else f"{base}{p['url']}"
         lastmod = p.get("date", "")
         sitemap.append(f"<url><loc>{loc}</loc><lastmod>{lastmod}</lastmod></url>")
     sitemap.append("</urlset>")
     write_text(ROOT / "sitemap.xml", "\n".join(sitemap))
 
-    # rss.xml
     rss = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<rss version="2.0"><channel>',
            f"<title>{SITE.get('name','Blog')}</title>",
-           f"<link>{SITE_URL}{BASE}/</link>" if SITE_URL else f"<link>{BASE}/</link>",
+           f"<link>{site_url}{base}/</link>" if site_url else f"<link>{base}/</link>",
            f"<description>{SITE.get('name','Automated Blog')}</description>"]
     for p in posts[:50]:
-        loc = f"{SITE_URL}{BASE}{p['url']}" if SITE_URL else f"{BASE}{p['url']}"
+        loc = f"{site_url}{base}{p['url']}" if site_url else f"{base}{p['url']}"
         try:
             pubdate = format_datetime(datetime.fromisoformat(p.get("date","")))
         except Exception:
@@ -185,7 +203,7 @@ def fix_root_shells():
 
 if __name__ == "__main__":
     normalize_state()
-    build_main()
+    build_main_and_pages()
     build_sitemap_and_rss()
     build_tags()
     fix_root_shells()
