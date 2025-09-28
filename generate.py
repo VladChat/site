@@ -5,7 +5,6 @@ from slugify import slugify
 from bs4 import BeautifulSoup
 from jinja2 import Template
 
-# OpenAI optional import (user must set OPENAI_API_KEY)
 try:
     from openai import OpenAI
     _client = OpenAI()
@@ -17,11 +16,12 @@ ROOT = pathlib.Path(__file__).parent
 def load_json(filename):
     return json.loads((ROOT / filename).read_text(encoding='utf-8'))
 
-CONFIG = load_json('config.json')
-KEYWORDS = load_json('keywords.json')['keywords']
-FEEDS = load_json('feeds.json')['rss_feeds']
-ADS = load_json('ads.json')
-ANALYTICS = load_json('analytics.json')
+# read from /config
+CONFIG = load_json('config/config.json')
+KEYWORDS = load_json('config/keywords.json')['keywords']
+FEEDS = load_json('config/feeds.json')['rss_feeds']
+ADS = load_json('config/ads.json')
+ANALYTICS = load_json('config/analytics.json')
 
 STATE_PATH = ROOT / 'data' / 'state.json'
 POSTS_DIR = ROOT / 'posts'
@@ -142,6 +142,7 @@ def render_post(title, html_body, date, description):
     minutes = max(1, int(words / 200))
     reading_time = f'~{minutes} min read'
 
+    from jinja2 import Template
     post_html = Template(post_tpl).render(
         POST_TITLE=title, DATE=date.strftime('%B %d, %Y'), READING_TIME=reading_time,
         POST_BODY=html_body, RELATED=related, FAQ=faq
@@ -164,6 +165,7 @@ def render_post(title, html_body, date, description):
 
 def md_to_html(md_text):
     html = md_text
+    import re
     html = re.sub(r'^# (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
     html = re.sub(r'^## (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
     html = re.sub(r'^- (.+)$', r'<li>\1</li>', html, flags=re.MULTILINE)
@@ -185,6 +187,7 @@ def main(auto=False):
     title = lines[0][:100] if lines else f'Trends in {kw}'
 
     html_body = md_to_html(body)
+    from bs4 import BeautifulSoup
     soup = BeautifulSoup(html_body, 'html.parser')
     first_p = soup.find('p')
     description = (first_p.get_text()[:160] if first_p else f'Insights on {kw}').strip()

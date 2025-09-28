@@ -7,7 +7,7 @@ def load_json(filename):
     return json.loads((ROOT / filename).read_text(encoding='utf-8'))
 
 STATE = load_json('data/state.json')
-SITE = load_json('config.json')['site']
+SITE = load_json('config/config.json')['site']
 INDEX_TPL = (ROOT / 'templates' / 'index.html').read_text(encoding='utf-8')
 TAG_TPL = (ROOT / 'templates' / 'tag.html').read_text(encoding='utf-8')
 
@@ -24,10 +24,7 @@ def _prefix_urls(soup, base):
         if mb:
             mb['content'] = base.rstrip('/')
         else:
-            m = soup.new_tag('meta')
-            m.attrs['name'] = 'site-base'
-            m.attrs['content'] = base.rstrip('/')
-            head.append(m)
+            m = soup.new_tag('meta'); m.attrs['name'] = 'site-base'; m.attrs['content'] = base.rstrip('/'); head.append(m)
 
 def write(path, txt):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -42,17 +39,16 @@ def build_index():
     soup = BeautifulSoup(home_path.read_text(encoding='utf-8'), 'html.parser')
     list_div = soup.find(id='list')
     if list_div:
-      list_div.clear()
+        list_div.clear()
     base = SITE['base_url'].rstrip('/')
     for p in items:
         item = soup.new_tag('div', attrs={'class': 'article-card'})
-        a = soup.new_tag('a', href=f"{base}{p['url']}")
-        a.string = p['title']
+        a = soup.new_tag('a', href=f"{base}{p['url']}"); a.string = p['title']
         meta = soup.new_tag('div', attrs={'class': 'meta'}); meta.string = p['date']
         desc = soup.new_tag('p'); desc.string = p.get('description', '')
         item.append(a); item.append(meta); item.append(desc)
         if list_div:
-          list_div.append(item)
+            list_div.append(item)
     home_path.write_text(str(soup), encoding='utf-8')
 
 def build_sitemap_and_rss():
@@ -86,9 +82,9 @@ def build_tags():
         html = TAG_TPL.replace('{{TAG}}', tag)
         path = ROOT / 'tags' / tag / 'index.html'
         soup = BeautifulSoup(html, 'html.parser')
-        list_div = soup.find(id='list'); 
+        list_div = soup.find(id='list')
         if list_div:
-          list_div.clear()
+            list_div.clear()
         for p in items:
             item = soup.new_tag('div', attrs={'class': 'article-card'})
             a = soup.new_tag('a', href=f"{base}{p['url']}"); a.string = p['title']
@@ -96,7 +92,7 @@ def build_tags():
             desc = soup.new_tag('p'); desc.string = p.get('description', '')
             item.append(a); item.append(meta); item.append(desc)
             if list_div:
-              list_div.append(item)
+                list_div.append(item)
         write(path, str(soup))
 
 def fix_root_shells():
