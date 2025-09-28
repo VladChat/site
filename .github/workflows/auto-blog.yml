@@ -2,11 +2,13 @@ name: Automated AI-SEO Blog
 
 on:
   schedule:
-   - cron: "0 16 * * *"
+    - cron: "0 16 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: ai-seo-blog
