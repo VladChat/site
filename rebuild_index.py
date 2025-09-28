@@ -24,7 +24,10 @@ def _prefix_urls(soup, base):
         if mb:
             mb['content'] = base.rstrip('/')
         else:
-            m = soup.new_tag('meta'); m.attrs['name'] = 'site-base'; m.attrs['content'] = base.rstrip('/'); head.append(m)
+            m = soup.new_tag('meta')
+            m.attrs['name'] = 'site-base'
+            m.attrs['content'] = base.rstrip('/')
+            head.append(m)
 
 def write(path, txt):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -43,10 +46,16 @@ def build_index():
     base = SITE['base_url'].rstrip('/')
     for p in items:
         item = soup.new_tag('div', attrs={'class': 'article-card'})
-        a = soup.new_tag('a', href=f"{base}{p['url']}"); a.string = p['title']
-        meta = soup.new_tag('div', attrs={'class': 'meta'}); meta.string = p['date']
-        desc = soup.new_tag('p'); desc.string = p.get('description', '')
-        item.append(a); item.append(meta); item.append(desc)
+        # url всегда чистый (/posts/...), добавляем base один раз
+        a = soup.new_tag('a', href=f"{base}{p['url']}")
+        a.string = p['title']
+        meta = soup.new_tag('div', attrs={'class': 'meta'})
+        meta.string = p['date']
+        desc = soup.new_tag('p')
+        desc.string = p.get('description', '')
+        item.append(a)
+        item.append(meta)
+        item.append(desc)
         if list_div:
             list_div.append(item)
     home_path.write_text(str(soup), encoding='utf-8')
@@ -54,6 +63,7 @@ def build_index():
 def build_sitemap_and_rss():
     base = SITE['base_url'].rstrip('/')
     posts = STATE.get('posts', [])[:500]
+
     urls = ["<?xml version='1.0' encoding='UTF-8'?>",
             "<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>"]
     for p in posts:
@@ -67,7 +77,12 @@ def build_sitemap_and_rss():
            f"<link>{base}</link>",
            "<description>Automated blog feed</description>"]
     for p in posts[:50]:
-        rss.append(f"<item><title><![CDATA[{p['title']}]]></title><link>{base}{p['url']}</link><pubDate>{p['date']}</pubDate><description><![CDATA[{p.get('description','')}]]></description></item>")
+        rss.append(
+            f"<item><title><![CDATA[{p['title']}]]></title>"
+            f"<link>{base}{p['url']}</link>"
+            f"<pubDate>{p['date']}</pubDate>"
+            f"<description><![CDATA[{p.get('description','')}]]></description></item>"
+        )
     rss.append('</channel></rss>')
     write(ROOT / 'feeds' / 'rss.xml', "\n".join(rss))
 
@@ -87,10 +102,15 @@ def build_tags():
             list_div.clear()
         for p in items:
             item = soup.new_tag('div', attrs={'class': 'article-card'})
-            a = soup.new_tag('a', href=f"{base}{p['url']}"); a.string = p['title']
-            meta = soup.new_tag('div', attrs={'class': 'meta'}); meta.string = p['date']
-            desc = soup.new_tag('p'); desc.string = p.get('description', '')
-            item.append(a); item.append(meta); item.append(desc)
+            a = soup.new_tag('a', href=f"{base}{p['url']}")
+            a.string = p['title']
+            meta = soup.new_tag('div', attrs={'class': 'meta'})
+            meta.string = p['date']
+            desc = soup.new_tag('p')
+            desc.string = p.get('description', '')
+            item.append(a)
+            item.append(meta)
+            item.append(desc)
             if list_div:
                 list_div.append(item)
         write(path, str(soup))
