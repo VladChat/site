@@ -3,6 +3,7 @@ import json
 import re
 import argparse
 from datetime import datetime
+import feedparser  # pip install feedparser
 
 # === Load configs ===
 with open("config/config.json", "r", encoding="utf-8") as f:
@@ -125,6 +126,37 @@ def extract_faq(article_text):
 
     return faq_block_html, faq_block_jsonld
 
+# === Save post ===
+def save_post(keyword, html):
+    today = datetime.today()
+    folder = f"blog-src/posts/{today.year}/{today.month:02d}/{today.day:02d}"
+    os.makedirs(folder, exist_ok=True)
+
+    # slug из keyword
+    slug = re.sub(r'[^a-z0-9\-]+', '-', keyword.lower()).strip('-')
+    if not slug:
+        slug = "post"
+
+    filepath = os.path.join(folder, f"{slug}.html")
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"✅ Saved post to {filepath}")
+
+# === Fetch news for auto mode ===
+def fetch_news_from_rss():
+    feeds = base_config.get("rssFeeds", [])
+    for url in feeds:
+        try:
+            feed = feedparser.parse(url)
+            if feed.entries:
+                entry = feed.entries[0]
+                keyword = entry.title
+                summaries = f"{entry.title} — {entry.link}"
+                return keyword, summaries
+        except Exception as e:
+            print(f"⚠️ Failed to parse {url}: {e}")
+    return "demo keyword", "Headline — Source"
+
 # === Main generate ===
 def generate_post(keyword, summaries):
     sys_prompt, usr_prompt = build_prompt(keyword, summaries)
@@ -161,11 +193,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.auto:
-        keyword = "demo keyword"
-        summaries = "Headline — Source"
+        keyword, summaries = fetch_news_from_rss()
     else:
         keyword = args.keyword or "demo keyword"
         summaries = args.summaries or "Headline — Source"
 
     result = generate_post(keyword, summaries)
-    print(result)
+    save_post(keyword, result)
