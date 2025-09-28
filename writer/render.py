@@ -74,4 +74,12 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs, *, slug, pub
         .replace("{{SITE_NAME}}", site.get("name",""))
     ) + "\n" + faq_jsonld
 
-    return layout.replace("{{ site.name }}", site.get("name","")).replace("{{ content }}", head_filled + "\n" + content)
+    if "{{ head_meta }}" in layout:
+        layout = layout.replace("{{ head_meta }}", head_filled)
+    else:
+        layout = layout.replace("</head>", head_filled + "\n</head>")
+
+    layout = layout.replace("{{ site.name }}", site.get("name",""))
+    layout = layout.replace("{{ content }}", content)
+
+    return layout
