@@ -8,12 +8,15 @@ def save_post(title, html, configs):
     folder = os.path.join("posts", f"{today.year:04d}", f"{today.month:02d}", f"{today.day:02d}")
     os.makedirs(folder, exist_ok=True)
 
-    slug = slugify(title) or "post"
-    filepath = os.path.join(folder, f"{slug}.html")
+    # Делаем slug уникальным: title + время (часы-минуты-секунды)
+    base_slug = slugify(title) or "post"
+    unique_slug = f"{base_slug}-{today.strftime('%H%M%S')}"
+
+    filepath = os.path.join(folder, f"{unique_slug}.html")
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html)
 
-    url = f"/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{slug}.html"
+    url = f"/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{unique_slug}.html"
     try:
         desc = BeautifulSoup(html, "html.parser").find("article").get_text(" ", strip=True)
         desc = re.sub(r"\s+", " ", desc)[:200]

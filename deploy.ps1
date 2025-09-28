@@ -1,4 +1,4 @@
-git checkout origin/main -- posts
 git add -A
-git commit -m "Auto-deploy $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+$commitMessage = "Auto-deploy $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+git commit -m "$commitMessage"
 git push origin main
