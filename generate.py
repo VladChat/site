@@ -136,7 +136,7 @@ def extract_faq(article_text):
 # === Save post ===
 def save_post(keyword, html):
     today = datetime.today()
-    folder = f"blog-src/posts/{today.year}/{today.month:02d}/{today.day:02d}"
+    folder = f"site/posts/{today.year}/{today.month:02d}/{today.day:02d}"
     os.makedirs(folder, exist_ok=True)
 
     slug = re.sub(r'[^a-z0-9\-]+', '-', keyword.lower()).strip('-')
@@ -156,7 +156,6 @@ def save_post(keyword, html):
         "description": f"{keyword} article",
         "tags": ["auto"]
     }
-    # добавляем в начало списка
     STATE["posts"].insert(0, new_entry)
     with open(state_path, "w", encoding="utf-8") as f:
         json.dump(STATE, f, ensure_ascii=False, indent=2)
