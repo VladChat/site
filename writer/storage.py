@@ -1,98 +1,127 @@
-import os, json, re, random, feedparser
+import os
+import json
+import re
 from datetime import datetime
+from pathlib import Path
 from bs4 import BeautifulSoup
-from .render import slugify
+from slugify import slugify as _slugify
 
 
-def save_post(title, html, configs):
+def _slugify(text: str) -> str:
+    s = (text or "").strip()
+    s = _slugify(s, lowercase=True) if s else "post"
+    return re.sub(r"-{2,}", "-", s).strip("-") or "post"
+
+
+def _read_state(state_path: Path) -> dict:
+    if state_path.exists():
+        try:
+            return json.loads(state_path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            # Никогда не падаем и не теряем историю
+            return {}
+    return {}
+
+
+def _write_state(state_path: Path, state: dict) -> None:
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state = state or {}
+    # Гарантируем ожидаемую структуру
+    if "posts" not in state or not isinstance(state["posts"], list):
+        state["posts"] = []
+    if "seen_entries" not in state or not isinstance(state.get("seen_entries"), list):
+        state["seen_entries"] = []
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _choose_content_root(repo_root: Path) -> Path:
+    # Если есть blog-src/posts — используем его (текущая структура в архиве)
+    blog_src_posts = repo_root / "blog-src" / "posts"
+    if blog_src_posts.exists():
+        return blog_src_posts
+    # Иначе — классический каталог posts
+    return repo_root / "posts"
+
+
+def fetch_news_from_rss(rss_urls):
     """
-    Save a post to posts/YYYY/MM/DD/<slug>-HHMMSS.html
-    and update data/state.json (prepend newest).
+    Упрощённая версия: возвращает (title, summary_line) самой свежей записи.
+    Оставлено для совместимости со старым generate.py.
     """
-    today = datetime.today()
-    folder = os.path.join("posts", f"{today.year:04d}", f"{today.month:02d}", f"{today.day:02d}")
-    os.makedirs(folder, exist_ok=True)
-
-    # Ensure unique slug to avoid overwriting previous posts with same title
-    base_slug = slugify(title) or "post"
-    unique_slug = f"{base_slug}-{today.strftime('%H%M%S')}"
-
-    filepath = os.path.join(folder, f"{unique_slug}.html")
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(html)
-
-    url = f"/posts/{today.year:04d}/{today.month:02d}/{today.day:02d}/{unique_slug}.html"
-
-    # Short description for index
     try:
-        desc = BeautifulSoup(html, "html.parser").find("article").get_text(" ", strip=True)
-        desc = re.sub(r"\s+", " ", desc)[:200]
+        import feedparser
     except Exception:
-        desc = f"{title} article"
-
-    # Update state.json
-    state_path = configs["state_path"]
-    state = configs.get("state") or {}
-    state.setdefault("posts", [])
-
-    # Prepend newest
-    state["posts"].insert(0, {
-        "title": title,
-        "url": url,
-        "date": today.strftime("%Y-%m-%d"),
-        "description": desc,
-        "tags": ["auto"]
-    })
-
-    # ❌ Больше нет агрессивной фильтрации старых постов.
-    # Все старые записи остаются в state.json, даже если файл временно отсутствует.
-
-    with open(state_path, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
-
-    print(f"✅ Saved post to {filepath} and updated state.json")
-
-
-def fetch_news_from_rss(configs):
-    """
-    Fetch a headline + link from configured RSS feeds.
-    Strategy:
-      - Shuffle feeds for variability.
-      - Collect first 3–5 entries from each feed (if available).
-      - Pick the most recent by published date; fallback to the first available.
-    Returns (title, summary_line).
-    """
-    feeds = list(configs.get("feeds", [])) or []
-    if not feeds:
         return "demo keyword", "Headline — Source"
 
-    random.shuffle(feeds)
     candidates = []
-
-    for url in feeds:
+    for url in (rss_urls or []):
         try:
             feed = feedparser.parse(url)
-            for e in (feed.entries or [])[:5]:
-                title = getattr(e, "title", "") or ""
-                link = getattr(e, "link", "") or ""
-                if not title or not link:
-                    continue
-                # Try to get a datetime; feedparser puts it in 'published_parsed' or 'updated_parsed'
-                ts = getattr(e, "published_parsed", None) or getattr(e, "updated_parsed", None)
-                epoch = 0
-                if ts:
-                    try:
-                        epoch = int(datetime(*ts[:6]).timestamp())
-                    except Exception:
-                        epoch = 0
-                candidates.append((epoch, title, f"{title} — {link}"))
-        except Exception as ex:
-            print(f"⚠️ Failed to parse {url}: {ex}")
+            for entry in feed.entries[:30]:
+                title = getattr(entry, "title", "").strip() or "news"
+                link = getattr(entry, "link", "").strip()
+                ts = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+                epoch = int(datetime(*ts[:6]).timestamp()) if ts else 0
+                candidates.append((epoch, title, f"{title} — {link}" if link else title))
+        except Exception:
+            continue
 
     if not candidates:
         return "demo keyword", "Headline — Source"
 
-    # most recent first
     candidates.sort(key=lambda x: x[0], reverse=True)
     _, title, line = candidates[0]
     return title, line
+
+
+def save_post(title: str, html: str, configs: dict):
+    """
+    Сохраняет пост в blog-src/posts или posts (в зависимости от структуры),
+    присваивает уникальное имя файла и добавляет запись в data/state.json,
+    НЕ затирая старые посты.
+    """
+    repo_root = Path(configs.get("root") or ".").resolve()
+    content_root = _choose_content_root(repo_root)
+
+    now = datetime.now()
+    y, m, d = f"{now.year:04d}", f"{now.month:02d}", f"{now.day:02d}"
+    day_dir = content_root / y / m / d
+    day_dir.mkdir(parents=True, exist_ok=True)
+
+    base_slug = _slugify(title)
+    unique = f"{base_slug}-{now.strftime('%Y%m%d-%H%M%S')}.html"
+    file_path = day_dir / unique
+
+    # Пишем HTML целиком
+    file_path.write_text(html, encoding="utf-8")
+
+    # Относительный URL всегда без base_url: он начинается с /posts/...
+    url = f"/posts/{y}/{m}/{d}/{unique}"
+
+    # Короткое описание из <article>
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+        article_text = (soup.find("article") or soup).get_text(" ", strip=True)
+        desc = re.sub(r"\s+", " ", article_text)[:200]
+    except Exception:
+        desc = f"{title} article"
+
+    # Обновляем state.json (только слоем слияния)
+    state_path = Path(configs.get("state_path") or (repo_root / "data" / "state.json"))
+    state = _read_state(state_path)
+    posts = list(state.get("posts") or [])
+    # Дедуп по URL
+    posts = [p for p in posts if str(p.get("url")) != url]
+    # Вставляем свежую запись в начало
+    posts.insert(0, {
+        "title": title,
+        "url": url,
+        "date": now.strftime("%Y-%m-%d"),
+        "description": desc,
+        "tags": ["travel"]
+    })
+    state["posts"] = posts
+    _write_state(state_path, state)
+
+    print(f"✅ Saved: {file_path}  →  {url}")
+    return str(file_path), url

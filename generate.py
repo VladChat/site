@@ -4,7 +4,8 @@
 import argparse
 import json
 import os
-from typing import Optional, Tuple
+import re
+from pathlib import Path
 
 from writer.config import load_configs
 from writer.prompts import build_prompt
@@ -14,71 +15,100 @@ from writer.render import render_post_html
 from writer.storage import save_post, fetch_news_from_rss
 
 
-def _load_keywords_list(configs) -> Optional[list]:
-    """Load keywords array from config/keywords.json. Returns list or None."""
-    root = configs.get("root", ".")
-    path = os.path.join(root, "config", "keywords.json")
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        # Support either {"keywords": [...]} or a raw list [...]
-        if isinstance(data, dict) and "keywords" in data and isinstance(data["keywords"], list):
-            return [str(k).strip() for k in data["keywords"] if str(k).strip()]
-        if isinstance(data, list):
-            return [str(k).strip() for k in data if str(k).strip()]
-    except FileNotFoundError:
-        print(f"⚠️ keywords.json not found at {path}")
-    except Exception as e:
-        print(f"⚠️ Failed to load keywords.json: {e}")
-    return None
-
-
-def _choose_keyword(configs) -> Tuple[Optional[str], Optional[int]]:
-    """
-    Choose the next keyword (round-robin) and return (keyword, next_index).
-    If keywords.json is missing, returns (None, None).
-    """
-    kws = _load_keywords_list(configs)
-    if not kws:
-        return None, None
-
-    state_path = configs.get("state_path")
-    # Default to -1 so first run picks index 0
-    idx = -1
-    try:
-        if state_path and os.path.exists(state_path):
-            with open(state_path, "r", encoding="utf-8") as f:
-                state = json.load(f) or {}
-            idx = int(state.get("keyword_index", -1))
-    except Exception as e:
-        print(f"⚠️ Failed to read state.json for keyword_index: {e}")
-
-    next_idx = (idx + 1) % len(kws)
-    return kws[next_idx], next_idx
-
-
 def _persist_keyword_index(configs, next_idx: int) -> None:
-    """Persist the chosen keyword index into data/state.json (without losing other fields)."""
-    state_path = configs.get("state_path")
-    if not state_path:
-        return
+    """Сохраняем keyword_index без потери остальных полей state.json."""
+    root = Path(configs.get("root") or ".").resolve()
+    state_path = Path(configs.get("state_path") or (root / "data" / "state.json"))
     try:
         state = {}
-        if os.path.exists(state_path):
-            with open(state_path, "r", encoding="utf-8") as f:
-                try:
-                    state = json.load(f) or {}
-                except Exception:
-                    state = {}
-        state["keyword_index"] = next_idx
-        with open(state_path, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
+        if state_path.exists():
+            try:
+                state = json.loads(state_path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                state = {}
+        state["keyword_index"] = int(next_idx)
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception as e:
         print(f"⚠️ Failed to persist keyword_index to state.json: {e}")
 
 
+def _normalize_keywords(raw) -> list[str]:
+    """
+    Приводит keywords к списку строк.
+    Поддерживаем:
+      - список: ["a", "b"]
+      - словарь: {"keywords":[...]} | {"items":[...]} | {"list":[...]} | {"data":[...]} | {"titles":[...]}
+      - строку с разделителями (переводы строк, запятые, точки с запятой)
+    """
+    kws: list[str] = []
+
+    if isinstance(raw, list):
+        kws = [str(x).strip() for x in raw if str(x).strip()]
+        return kws
+
+    if isinstance(raw, dict):
+        for k in ("keywords", "items", "list", "data", "titles"):
+            v = raw.get(k)
+            if isinstance(v, list):
+                kws = [str(x).strip() for x in v if str(x).strip()]
+                if kws:
+                    return kws
+        # если словарь без ожидаемых ключей — попробуем взять строковые значения
+        flat = [str(v).strip() for v in raw.values() if isinstance(v, (str, int, float))]
+        return [s for s in flat if s]
+
+    if isinstance(raw, str):
+        parts = re.split(r"[\r\n,;]+", raw)
+        return [p.strip() for p in parts if p.strip()]
+
+    return []
+
+
+def _choose_keyword(configs, args) -> tuple[str, int | None]:
+    """
+    Возвращает (keyword, next_index_or_None).
+    Если keywords.json отсутствует/пустой, уходим в RSS-фолбэк.
+    """
+    if args.keyword:
+        return args.keyword, None
+
+    root = Path(configs.get("root") or ".").resolve()
+    kw_file = root / "config" / "keywords.json"
+
+    kws: list[str] = []
+    if kw_file.exists():
+        try:
+            raw = json.loads(kw_file.read_text(encoding="utf-8"))
+        except Exception:
+            # позволим хранить просто текстовый файл со списком слов по строкам
+            raw = kw_file.read_text(encoding="utf-8")
+        kws = _normalize_keywords(raw)
+
+    if not kws:
+        # Фолбэк: берём из RSS название как keyword
+        feeds = configs.get("feeds") or []
+        title, _ = fetch_news_from_rss(feeds)
+        return title, None
+
+    # циклический перебор индекса
+    root = Path(configs.get("root") or ".").resolve()
+    state_path = Path(configs.get("state_path") or (root / "data" / "state.json"))
+    idx = -1
+    if state_path.exists():
+        try:
+            st = json.loads(state_path.read_text(encoding="utf-8")) or {}
+            raw_idx = st.get("keyword_index", -1)
+            idx = int(raw_idx) if isinstance(raw_idx, (int, str)) and str(raw_idx).strip().lstrip("-").isdigit() else -1
+        except Exception:
+            idx = -1
+
+    total = len(kws)
+    next_idx = (idx + 1) % total
+    return kws[next_idx], next_idx
+
+
 def generate_post(keyword: str, summaries: str, configs) -> str:
-    """Build prompts, call LLM, extract FAQ, render HTML."""
     sys_prompt, usr_prompt = build_prompt(keyword, summaries, configs)
     article_md = call_openai(usr_prompt, sys_prompt)
     faq_html, faq_jsonld = extract_faq(article_md)
@@ -87,33 +117,26 @@ def generate_post(keyword: str, summaries: str, configs) -> str:
 
 
 def main():
-    configs = load_configs()
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("--auto", action="store_true", help="Auto mode for GitHub Actions")
-    parser.add_argument("--keyword", type=str, default=None, help="Override keyword")
-    parser.add_argument("--summaries", type=str, default=None, help="Override news summaries")
+    parser.add_argument("--keyword", help="Force keyword", default=None)
+    parser.add_argument("--summaries", help="News summaries line", default=None)
     args = parser.parse_args()
 
-    # Always try to fetch fresh news signals from RSS
-    rss_title, rss_summary = fetch_news_from_rss(configs)
+    configs = load_configs()
 
-    # Decide on the keyword
-    chosen_keyword = args.keyword  # explicit override wins
-    chosen_idx = None
-    if not chosen_keyword:
-        kw, idx = _choose_keyword(configs)  # from keywords.json (round-robin)
-        chosen_keyword, chosen_idx = kw, idx
-    if not chosen_keyword:
-        # Fallback: use RSS title if no keywords.json and no override
-        chosen_keyword = rss_title or "demo keyword"
+    # Выбор ключевого слова и кратких «сигналов»
+    keyword, chosen_idx = _choose_keyword(configs, args)
+    if not args.summaries:
+        # Из RSS
+        _, summaries = fetch_news_from_rss(configs.get("feeds") or [])
+    else:
+        summaries = args.summaries
 
-    # Decide on the summaries (news context for the article)
-    summaries = args.summaries or rss_summary or "Headline — Source"
+    # Генерация → Сохранение
+    html = generate_post(keyword, summaries, configs)
+    save_post(keyword, html, configs)
 
-    # Generate → Save → Persist keyword index (after save_post, to avoid overwrite)
-    html = generate_post(chosen_keyword, summaries, configs)
-    save_post(chosen_keyword, html, configs)
+    # Обновляем индекс ключевого слова (последним шагом)
     if chosen_idx is not None:
         _persist_keyword_index(configs, chosen_idx)
 
