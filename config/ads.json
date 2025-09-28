@@ -1,8 +1,8 @@
 {
   "enabled": true,
-  "slots": [
-    "slot1",
-    "slot2",
-    "slot3"
-  ]
+  "slots": {
+    "slot1": "<div style='background:red;color:white;padding:20px;'>TEST AD SLOT 1</div>",
+    "slot2": "<div style='background:blue;color:white;padding:20px;'>TEST AD SLOT 2</div>",
+    "slot3": "<div style='background:green;color:white;padding:20px;'>TEST AD SLOT 3</div>"
+  }
 }
