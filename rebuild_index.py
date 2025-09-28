@@ -94,7 +94,8 @@ def build_main_and_pages():
         # добавляем навигацию
         nav = soup.new_tag("div", attrs={"class": "pagination"})
         if page > 1:
-            prev_link = soup.new_tag("a", href=f"{BASE}/page/{page-1}/index.html")
+            prev_href = f"{BASE}/" if (page - 1) == 1 else f"{BASE}/page/{page-1}/index.html"
+            prev_link = soup.new_tag("a", href=prev_href)
             prev_link.string = "← Previous"
             nav.append(prev_link)
         if page < pages:
