@@ -5,10 +5,12 @@
   if (!input || !results) return;
   const data = await fetch(BASE + '/feeds/search.json', {cache:'no-store'}).then(r=>r.json()).catch(()=>[]);
   input.addEventListener('input', () => {
-    const q = input.value.toLowerCase();
+    const q = input.value.trim().toLowerCase();
     results.innerHTML='';
     if (!q) return;
-    const hits = data.filter(p => (p.title.toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q))).slice(0,20);
+    const hits = data
+      .filter(p => ((p.title||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q)))
+      .slice(0,20);
     hits.forEach(p => {
       const el = document.createElement('div');
       el.className='article-card';

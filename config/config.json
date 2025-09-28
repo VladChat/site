@@ -11,5 +11,10 @@
   "horizonHours": 72,
   "cron": "0 12 * * *",
   "minWords": 1000,
-  "maxWords": 3000
+  "maxWords": 3000,
+  "rssFeeds": [
+    "https://rss.nytimes.com/services/xml/rss/nyt/Travel.xml",
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://feeds.bbci.co.uk/news/technology/rss.xml"
+  ]
 }
