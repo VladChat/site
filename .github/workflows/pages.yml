@@ -27,7 +27,21 @@ jobs:
       - name: Build site
         run: |
           mkdir -p ./public
-          cp -r *.html posts ads assets feeds data tags config ./public/ || true
+          rsync -av \
+            --exclude='public/***' \
+            --filter='+ /*.html' \
+            --filter='+ /robots.txt' \
+            --filter='+ /ads/***' \
+            --filter='+ /assets/***' \
+            --filter='+ /config/***' \
+            --filter='+ /data/***' \
+            --filter='+ /feeds/***' \
+            --filter='+ /page*/***' \
+            --filter='+ /posts/***' \
+            --filter='+ /tags/***' \
+            --filter='- /**' \
+            --filter='- **' \
+            ./ ./public/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
