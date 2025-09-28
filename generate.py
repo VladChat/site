@@ -152,11 +152,20 @@ def generate_post(keyword, summaries):
 """
     return post_html
 
+# === Entry point ===
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--keyword", type=str, default="demo keyword")
-    parser.add_argument("--summaries", type=str, default="Headline — Source")
+    parser.add_argument("--auto", action="store_true", help="Auto mode for GitHub Actions")
+    parser.add_argument("--keyword", type=str, default=None)
+    parser.add_argument("--summaries", type=str, default=None)
     args = parser.parse_args()
 
-    result = generate_post(args.keyword, args.summaries)
+    if args.auto:
+        keyword = "demo keyword"
+        summaries = "Headline — Source"
+    else:
+        keyword = args.keyword or "demo keyword"
+        summaries = args.summaries or "Headline — Source"
+
+    result = generate_post(keyword, summaries)
     print(result)
