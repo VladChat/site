@@ -1,4 +1,5 @@
 import re
+from html import escape
 from datetime import datetime
 
 def md_to_html(md: str) -> str:
@@ -42,6 +43,7 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs, *, slug, pub
     words = len(re.findall(r"\w+", body_md))
     reading_time = f"{max(1, words // 200)} min read"
     site = configs["base_config"]["site"]
+    site_name = site.get("name", "")
 
     # берём домен и base_url из конфига
     site_url = site.get("url", "").rstrip("/")
@@ -64,6 +66,7 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs, *, slug, pub
     )
 
     description = plain_text(body_md)[:160]
+    page_title = f"{title} — {site_name}" if site_name else title
     head_filled = (head_meta
         .replace("{{TITLE}}", title)
         .replace("{{DESCRIPTION}}", description)
@@ -79,7 +82,9 @@ def render_post_html(title, body_md, faq_html, faq_jsonld, configs, *, slug, pub
     else:
         layout = layout.replace("</head>", head_filled + "\n</head>")
 
-    layout = layout.replace("{{ site.name }}", site.get("name",""))
+    layout = layout.replace("{{ page_title }}", page_title)
+    layout = layout.replace("{{ page_description }}", escape(description, quote=True))
+    layout = layout.replace("{{ site.name }}", site_name)
     layout = layout.replace("{{ content }}", content)
 
     return layout
